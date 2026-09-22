@@ -2,10 +2,10 @@
 
 namespace Database\Factories;
 
-use App\Models\RestaurantReview;
-use App\Models\Order;
 use App\Models\Customer;
+use App\Models\Order;
 use App\Models\Restaurant;
+use App\Models\RestaurantReview;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class RestaurantReviewFactory extends Factory
 {
+    /** @var list<string> */
     private static array $positiveComments = [
         'Masarap! Babalik kami ulit.', 'Sulit na sulit ang presyo!', 'Palagi kaming nagorder dito.',
         'Fresh ang pagkain at mabilis ang delivery!', 'Lutong Pinoy talaga, sarap!',
@@ -21,6 +22,7 @@ class RestaurantReviewFactory extends Factory
         'Favorite namin to sa Dumaguete!',
     ];
 
+    /** @var list<string> */
     private static array $negativeComments = [
         'Okay lang, pero matagal dumating.', 'Medyo maalat para sa amin.',
         'Sana mas mainit pag dating.', 'Mababa ang portions kumpara sa presyo.',

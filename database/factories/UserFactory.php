@@ -14,18 +14,21 @@ class UserFactory extends Factory
 {
     protected static ?string $password;
 
+    /** @var list<string> */
     private static array $maleFirstNames = [
         'Jose', 'Juan', 'Miguel', 'Carlo', 'Ramon', 'Rodel', 'Benjie', 'Noel',
         'Jayson', 'Mark', 'Kevin', 'Jerome', 'Ronnie', 'Dennis', 'Arjay', 'Gilbert',
         'Renz', 'Alvin', 'Jobert', 'Efren',
     ];
 
+    /** @var list<string> */
     private static array $femaleFirstNames = [
         'Maria', 'Ana', 'Liza', 'Jasmine', 'Precious', 'Christine', 'Lovely', 'Angel',
         'Gina', 'Rona', 'Sheila', 'Maricel', 'Joy', 'Daisy', 'Len', 'Rhea',
         'Marivic', 'Cristina', 'Rowena', 'Rosalie',
     ];
 
+    /** @var list<string> */
     private static array $lastNames = [
         'Santos', 'Reyes', 'Cruz', 'Garcia', 'Dela Cruz', 'Bautista', 'Aquino',
         'Villanueva', 'Gonzales', 'Mendoza', 'Flores', 'Ramos', 'Castillo',
@@ -40,6 +43,7 @@ class UserFactory extends Factory
             ? $this->faker->randomElement(self::$maleFirstNames)
             : $this->faker->randomElement(self::$femaleFirstNames);
         $last = $this->faker->randomElement(self::$lastNames);
+
         return "{$first} {$last}";
     }
 

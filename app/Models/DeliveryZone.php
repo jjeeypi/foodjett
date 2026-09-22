@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use Database\Factories\DeliveryZoneFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class DeliveryZone extends Model
 {
+    /** @use HasFactory<DeliveryZoneFactory> */
     use HasFactory;
 
     protected $fillable = [

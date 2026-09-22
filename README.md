@@ -7,6 +7,7 @@ A modern full-stack web application built with **Laravel 13**, **React 19**, and
 ## ✨ Features
 
 ### 🔐 Authentication
+
 - **Email & Password** login and registration
 - **Email Verification** — users must verify their email before accessing protected routes
 - **Two-Factor Authentication (2FA)** — TOTP-based 2FA with recovery codes
@@ -15,13 +16,15 @@ A modern full-stack web application built with **Laravel 13**, **React 19**, and
 - **Forgot/Reset Password** flow
 
 ### 🛠️ User Settings
-| Page | Features |
-|------|----------|
-| **Profile** | Update name, email |
-| **Security** | Change password, manage 2FA, manage passkeys |
-| **Appearance** | Theme preferences (light/dark mode) |
+
+| Page           | Features                                     |
+| -------------- | -------------------------------------------- |
+| **Profile**    | Update name, email                           |
+| **Security**   | Change password, manage 2FA, manage passkeys |
+| **Appearance** | Theme preferences (light/dark mode)          |
 
 ### 🎨 Frontend
+
 - **React 19** with the React Compiler
 - **Inertia.js v3** for seamless SPA-style navigation without an API
 - **Tailwind CSS v4** for utility-first styling
@@ -34,19 +37,19 @@ A modern full-stack web application built with **Laravel 13**, **React 19**, and
 
 ## 🏗️ Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Backend | Laravel 13 (PHP 8.3+) |
-| Frontend | React 19 + TypeScript |
-| SSR Bridge | Inertia.js v3 |
-| Styling | Tailwind CSS v4 |
-| Auth | Laravel Fortify |
-| Passkeys | `@laravel/passkeys` |
-| Build Tool | Vite 8 (via `vite-plus`) |
-| Type Safety | TypeScript + PHPStan (Larastan) |
-| Linting | Pint (PHP) + ESLint (JS) |
-| Testing | PHPUnit 12 |
-| Database | SQLite (default) / MySQL / PostgreSQL |
+| Layer       | Technology                            |
+| ----------- | ------------------------------------- |
+| Backend     | Laravel 13 (PHP 8.3+)                 |
+| Frontend    | React 19 + TypeScript                 |
+| SSR Bridge  | Inertia.js v3                         |
+| Styling     | Tailwind CSS v4                       |
+| Auth        | Laravel Fortify                       |
+| Passkeys    | `@laravel/passkeys`                   |
+| Build Tool  | Vite 8 (via `vite-plus`)              |
+| Type Safety | TypeScript + PHPStan (Larastan)       |
+| Linting     | Pint (PHP) + ESLint (JS)              |
+| Testing     | PHPUnit 12                            |
+| Database    | SQLite (default) / MySQL / PostgreSQL |
 
 ---
 
@@ -96,6 +99,7 @@ foodjett/
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - PHP **8.3+** with the required extensions
 - Composer
 - Node.js **18+** & npm
@@ -112,6 +116,7 @@ composer setup
 ```
 
 The `composer setup` command will:
+
 1. Install PHP dependencies
 2. Copy `.env.example` → `.env` and generate an app key
 3. Run database migrations
@@ -190,14 +195,14 @@ For production, configure a real mail driver (SMTP, Mailgun, SES) and a database
 
 This project uses **Laravel Fortify** as the authentication backend. The following features are enabled by default:
 
-| Feature | Enabled |
-|---------|---------|
-| Registration | ✅ |
-| Email Verification | ✅ |
-| Two-Factor Authentication | ✅ |
-| Passkeys (WebAuthn) | ✅ |
-| Password Confirmation | ✅ |
-| Password Reset | ✅ |
+| Feature                   | Enabled |
+| ------------------------- | ------- |
+| Registration              | ✅      |
+| Email Verification        | ✅      |
+| Two-Factor Authentication | ✅      |
+| Passkeys (WebAuthn)       | ✅      |
+| Password Confirmation     | ✅      |
+| Password Reset            | ✅      |
 
 Features can be toggled via `config/fortify.php` or by re-running the Chisel installer.
 
@@ -230,24 +235,26 @@ npm run check
 ## 📦 Key Dependencies
 
 ### PHP (Composer)
-| Package | Purpose |
-|---------|---------|
-| `laravel/framework` ^13 | Core framework |
-| `laravel/fortify` ^1.37 | Authentication backend |
+
+| Package                        | Purpose                   |
+| ------------------------------ | ------------------------- |
+| `laravel/framework` ^13        | Core framework            |
+| `laravel/fortify` ^1.37        | Authentication backend    |
 | `inertiajs/inertia-laravel` ^3 | Inertia.js server adapter |
-| `laravel/wayfinder` ^0.1 | Type-safe route helpers |
-| `laravel/chisel` ^0.1 | Feature installer |
+| `laravel/wayfinder` ^0.1       | Type-safe route helpers   |
+| `laravel/chisel` ^0.1          | Feature installer         |
 
 ### JavaScript (npm)
-| Package | Purpose |
-|---------|---------|
-| `react` ^19 | UI library |
-| `@inertiajs/react` ^3 | Inertia.js React adapter |
-| `tailwindcss` ^4 | CSS framework |
-| `@radix-ui/*` | Headless accessible components |
-| `@laravel/passkeys` ^0.2 | Passkey / WebAuthn support |
-| `lucide-react` | Icons |
-| `sonner` | Toast notifications |
+
+| Package                  | Purpose                        |
+| ------------------------ | ------------------------------ |
+| `react` ^19              | UI library                     |
+| `@inertiajs/react` ^3    | Inertia.js React adapter       |
+| `tailwindcss` ^4         | CSS framework                  |
+| `@radix-ui/*`            | Headless accessible components |
+| `@laravel/passkeys` ^0.2 | Passkey / WebAuthn support     |
+| `lucide-react`           | Icons                          |
+| `sonner`                 | Toast notifications            |
 
 ---
 

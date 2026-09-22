@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RiderCashRemittance extends Model
 {
+    /** @use HasFactory<Factory<static>> */
     use HasFactory;
 
     protected $fillable = [
@@ -22,11 +24,13 @@ class RiderCashRemittance extends Model
         ];
     }
 
+    /** @return BelongsTo<Rider, $this> */
     public function rider(): BelongsTo
     {
         return $this->belongsTo(Rider::class);
     }
 
+    /** @return BelongsTo<Admin, $this> */
     public function confirmedByAdmin(): BelongsTo
     {
         return $this->belongsTo(Admin::class, 'confirmed_by_admin_id');

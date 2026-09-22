@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 class MenuItemFactory extends Factory
 {
     // Filipino dishes grouped loosely by category
+    /** @var list<array{string, int}> */
     private static array $items = [
         // Rice Meals
         ['Adobong Manok', 130], ['Sinigang na Baboy', 180], ['Tinolang Manok', 150],

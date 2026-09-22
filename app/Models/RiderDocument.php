@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use Database\Factories\RiderDocumentFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RiderDocument extends Model
 {
+    /** @use HasFactory<RiderDocumentFactory> */
     use HasFactory;
 
     protected $fillable = [
@@ -17,6 +19,7 @@ class RiderDocument extends Model
         'status',
     ];
 
+    /** @return BelongsTo<Rider, $this> */
     public function rider(): BelongsTo
     {
         return $this->belongsTo(Rider::class);

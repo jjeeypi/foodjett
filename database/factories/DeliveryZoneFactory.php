@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 class DeliveryZoneFactory extends Factory
 {
     // Dumaguete City zones with approximate center coordinates
+    /** @var list<array{name: string, center: array{float, float}, radius: float}> */
     private static array $zones = [
         [
             'name' => 'Bantayan / Downtown',
@@ -39,10 +40,16 @@ class DeliveryZoneFactory extends Factory
         ],
     ];
 
-    /** Build a simple square bounding-box polygon from center + radius. */
+    /**
+     * Build a simple square bounding-box polygon from center + radius.
+     *
+     * @param  array{float, float}  $center
+     * @return array{type: string, coordinates: list<list<array{float, float}>>}
+     */
     private static function makePolygon(array $center, float $r): array
     {
         [$lat, $lng] = $center;
+
         return [
             'type' => 'Polygon',
             'coordinates' => [[
@@ -66,7 +73,11 @@ class DeliveryZoneFactory extends Factory
         ];
     }
 
-    /** Create all 5 Dumaguete zones from the static list. */
+    /**
+     * Create all 5 Dumaguete zones from the static list.
+     *
+     * @return list<array<string, mixed>>
+     */
     public static function allZones(): array
     {
         return array_map(fn ($zone) => [

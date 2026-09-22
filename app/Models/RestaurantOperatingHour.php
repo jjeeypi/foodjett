@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use Database\Factories\RestaurantOperatingHourFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RestaurantOperatingHour extends Model
 {
+    /** @use HasFactory<RestaurantOperatingHourFactory> */
     use HasFactory;
 
     protected $fillable = [
@@ -24,6 +26,7 @@ class RestaurantOperatingHour extends Model
         ];
     }
 
+    /** @return BelongsTo<Restaurant, $this> */
     public function restaurant(): BelongsTo
     {
         return $this->belongsTo(Restaurant::class);

@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Models\MenuItemAddon;
 use App\Models\MenuItem;
+use App\Models\MenuItemAddon;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class MenuItemAddonFactory extends Factory
 {
+    /** @var list<array{string, int}> */
     private static array $addons = [
         ['Extra Rice',       25],
         ['Extra Sauce',      15],

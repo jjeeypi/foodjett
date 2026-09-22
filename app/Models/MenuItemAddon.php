@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use Database\Factories\MenuItemAddonFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class MenuItemAddon extends Model
 {
+    /** @use HasFactory<MenuItemAddonFactory> */
     use HasFactory;
 
     protected $fillable = [

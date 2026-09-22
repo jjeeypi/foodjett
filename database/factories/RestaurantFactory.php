@@ -12,24 +12,28 @@ use Illuminate\Support\Str;
  */
 class RestaurantFactory extends Factory
 {
+    /** @var list<string> */
     private static array $names = [
-        "Gabby's Bistro", 'Sans Rival Cakes & Pastries', "Lab-as Seafood Grill",
+        "Gabby's Bistro", 'Sans Rival Cakes & Pastries', 'Lab-as Seafood Grill',
         'El Amigo Restaurant', 'Why Not Restaurant', 'Chin Loong Restaurant',
-        "Shawarma Snack Center", "Hayahay Treehouse", 'Paypay Restaurant',
-        "Brocolight Healthy Eats", "Kapehan sa Boulevard", "RD Pawnshop Canteen",
-        "Silliman Eats", "Rizal Blvd Grill", "Pepita's Kitchen",
+        'Shawarma Snack Center', 'Hayahay Treehouse', 'Paypay Restaurant',
+        'Brocolight Healthy Eats', 'Kapehan sa Boulevard', 'RD Pawnshop Canteen',
+        'Silliman Eats', 'Rizal Blvd Grill', "Pepita's Kitchen",
     ];
 
+    /** @var list<string> */
     private static array $cuisines = [
         'Filipino', 'Seafood', 'Chinese', 'Fast Food', 'Healthy', 'Cafe', 'Grill & BBQ',
     ];
 
+    /** @var list<string> */
     private static array $streets = [
         'Perdices St', 'Locsin St', 'Real St', 'Rizal Blvd', 'Flores Ave',
         'Cervantes St', 'Sta. Catalina St', 'Dr. V. Locsin St', 'Campanario St',
         'EJ Blanco Dr', 'Hibbard Ave', 'Colon Extension',
     ];
 
+    /** @var list<string> */
     private static array $barangays = [
         'Bantayan', 'Piapi', 'Looc', 'Taclobo', 'Bagacay', 'Daro', 'Calindagan',
         'Junob', 'Tinago', 'Cadawinonan', 'Poblacion', 'Camanjac',
@@ -42,14 +46,14 @@ class RestaurantFactory extends Factory
         return [
             'user_id' => User::factory()->restaurantOwner(),
             'name' => $name,
-            'slug' => Str::slug($name) . '-' . $this->faker->numberBetween(1, 999),
+            'slug' => Str::slug($name).'-'.$this->faker->numberBetween(1, 999),
             'description' => $this->faker->sentence(10),
             'logo_path' => null,
             'cover_photo_path' => null,
             'cuisine_type' => $this->faker->randomElement(self::$cuisines),
             'address' => $this->faker->randomElement(self::$streets)
-                . ', Brgy. ' . $this->faker->randomElement(self::$barangays)
-                . ', Dumaguete City, Negros Oriental',
+                .', Brgy. '.$this->faker->randomElement(self::$barangays)
+                .', Dumaguete City, Negros Oriental',
             'latitude' => $this->faker->randomFloat(7, 9.3000, 9.3200),
             'longitude' => $this->faker->randomFloat(7, 123.2900, 123.3100),
             'default_prep_time_minutes' => $this->faker->randomElement([10, 15, 20, 25, 30]),

@@ -23,11 +23,13 @@ class RiderPoolDecline extends Model
         ];
     }
 
+    /** @return BelongsTo<Order, $this> */
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
     }
 
+    /** @return BelongsTo<Rider, $this> */
     public function rider(): BelongsTo
     {
         return $this->belongsTo(Rider::class);

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class OrderItem extends Model
 {
+    /** @use HasFactory<Factory<static>> */
     use HasFactory;
 
     protected $fillable = [
@@ -30,16 +32,19 @@ class OrderItem extends Model
         return $this->belongsTo(Order::class);
     }
 
+    /** @return BelongsTo<MenuItem, $this> */
     public function menuItem(): BelongsTo
     {
         return $this->belongsTo(MenuItem::class);
     }
 
+    /** @return BelongsTo<MenuItemVariant, $this> */
     public function variant(): BelongsTo
     {
         return $this->belongsTo(MenuItemVariant::class, 'menu_item_variant_id');
     }
 
+    /** @return HasMany<OrderItemAddon, $this> */
     public function addons(): HasMany
     {
         return $this->hasMany(OrderItemAddon::class);

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Database\Factories\VoucherFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Voucher extends Model
 {
+    /** @use HasFactory<VoucherFactory> */
     use HasFactory;
 
     protected $fillable = [
@@ -28,11 +30,13 @@ class Voucher extends Model
         ];
     }
 
+    /** @return BelongsTo<Restaurant, $this> */
     public function restaurant(): BelongsTo
     {
         return $this->belongsTo(Restaurant::class);
     }
 
+    /** @return HasMany<VoucherRedemption, $this> */
     public function redemptions(): HasMany
     {
         return $this->hasMany(VoucherRedemption::class);

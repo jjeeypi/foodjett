@@ -11,19 +11,23 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class CustomerAddressFactory extends Factory
 {
+    /** @var list<string> */
     private static array $labels = ['Home', 'Work', 'School', 'Other'];
 
+    /** @var list<string> */
     private static array $streets = [
         'Perdices St', 'Locsin St', 'Real St', 'Rizal Blvd', 'Flores Ave',
         'Cervantes St', 'Sta. Catalina St', 'Dr. V. Locsin St', 'Campanario St',
         'EJ Blanco Dr', 'Hibbard Ave', 'Colon Extension', 'San Jose St', 'Silliman Ave',
     ];
 
+    /** @var list<string> */
     private static array $barangays = [
         'Bantayan', 'Piapi', 'Looc', 'Taclobo', 'Bagacay', 'Daro', 'Calindagan',
         'Junob', 'Tinago', 'Cadawinonan', 'Poblacion', 'Camanjac', 'Bagakay',
     ];
 
+    /** @var list<string|null> */
     private static array $landmarks = [
         'Near Silliman University Gate', 'Across Lee Plaza', 'Near Robinson\'s Dumaguete',
         'Near Dumaguete Cathedral', 'Near Public Market', 'Near Quezon Park',
@@ -39,7 +43,7 @@ class CustomerAddressFactory extends Factory
         return [
             'customer_id' => Customer::factory(),
             'label' => $this->faker->randomElement(self::$labels),
-            'address_line' => $this->faker->buildingNumber() . ' ' . $street . ', Brgy. ' . $barangay . ', Dumaguete City',
+            'address_line' => $this->faker->buildingNumber().' '.$street.', Brgy. '.$barangay.', Dumaguete City',
             'landmark' => $this->faker->randomElement(self::$landmarks),
             'delivery_instructions' => $this->faker->optional(0.3)->sentence(),
             'latitude' => $this->faker->randomFloat(7, 9.3000, 9.3200),

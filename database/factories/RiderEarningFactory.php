@@ -2,9 +2,9 @@
 
 namespace Database\Factories;
 
-use App\Models\RiderEarning;
-use App\Models\Rider;
 use App\Models\Order;
+use App\Models\Rider;
+use App\Models\RiderEarning;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

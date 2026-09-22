@@ -11,15 +11,17 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class RestaurantDocumentFactory extends Factory
 {
+    /** @var list<string> */
     private static array $types = ['business_permit', 'food_safety_permit', 'owner_id'];
 
     public function definition(): array
     {
         $type = $this->faker->randomElement(self::$types);
+
         return [
             'restaurant_id' => Restaurant::factory(),
             'type' => $type,
-            'file_path' => 'documents/restaurants/' . $type . '_' . $this->faker->uuid() . '.jpg',
+            'file_path' => 'documents/restaurants/'.$type.'_'.$this->faker->uuid().'.jpg',
             'status' => $this->faker->randomElement(['pending', 'approved', 'approved']),
         ];
     }

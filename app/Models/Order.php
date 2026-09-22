@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Order extends Model
 {
+    /** @use HasFactory<Factory<static>> */
     use HasFactory;
 
     protected $fillable = [
@@ -45,71 +47,85 @@ class Order extends Model
         ];
     }
 
+    /** @return BelongsTo<Customer, $this> */
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
     }
 
+    /** @return BelongsTo<Restaurant, $this> */
     public function restaurant(): BelongsTo
     {
         return $this->belongsTo(Restaurant::class);
     }
 
+    /** @return BelongsTo<Rider, $this> */
     public function rider(): BelongsTo
     {
         return $this->belongsTo(Rider::class);
     }
 
+    /** @return BelongsTo<CustomerAddress, $this> */
     public function deliveryAddress(): BelongsTo
     {
         return $this->belongsTo(CustomerAddress::class, 'customer_address_id');
     }
 
+    /** @return HasMany<OrderItem, $this> */
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
     }
 
+    /** @return HasMany<OrderStatusHistory, $this> */
     public function statusHistory(): HasMany
     {
         return $this->hasMany(OrderStatusHistory::class);
     }
 
+    /** @return HasOne<Payment, $this> */
     public function payment(): HasOne
     {
         return $this->hasOne(Payment::class);
     }
 
+    /** @return HasOne<RiderPoolOffer, $this> */
     public function poolOffer(): HasOne
     {
         return $this->hasOne(RiderPoolOffer::class);
     }
 
+    /** @return HasMany<RiderPoolDecline, $this> */
     public function poolDeclines(): HasMany
     {
         return $this->hasMany(RiderPoolDecline::class);
     }
 
+    /** @return HasOne<RestaurantReview, $this> */
     public function restaurantReview(): HasOne
     {
         return $this->hasOne(RestaurantReview::class);
     }
 
+    /** @return HasOne<RiderReview, $this> */
     public function riderReview(): HasOne
     {
         return $this->hasOne(RiderReview::class);
     }
 
+    /** @return HasOne<RiderEarning, $this> */
     public function riderEarning(): HasOne
     {
         return $this->hasOne(RiderEarning::class);
     }
 
+    /** @return HasMany<OrderReport, $this> */
     public function reports(): HasMany
     {
         return $this->hasMany(OrderReport::class);
     }
 
+    /** @return HasOne<VoucherRedemption, $this> */
     public function voucherRedemption(): HasOne
     {
         return $this->hasOne(VoucherRedemption::class);

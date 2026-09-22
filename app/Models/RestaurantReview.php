@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use Database\Factories\RestaurantReviewFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RestaurantReview extends Model
 {
+    /** @use HasFactory<RestaurantReviewFactory> */
     use HasFactory;
 
     protected $fillable = [
@@ -23,16 +25,19 @@ class RestaurantReview extends Model
         ];
     }
 
+    /** @return BelongsTo<Order, $this> */
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
     }
 
+    /** @return BelongsTo<Customer, $this> */
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
     }
 
+    /** @return BelongsTo<Restaurant, $this> */
     public function restaurant(): BelongsTo
     {
         return $this->belongsTo(Restaurant::class);

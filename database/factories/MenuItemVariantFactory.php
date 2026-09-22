@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class MenuItemVariantFactory extends Factory
 {
+    /** @var list<array{string, int}> */
     private static array $sizes = [
         ['Small',  -20],
         ['Regular',  0],

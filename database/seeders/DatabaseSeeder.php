@@ -7,8 +7,6 @@ use App\Models\Customer;
 use App\Models\CustomerAddress;
 use App\Models\DeliveryZone;
 use App\Models\MenuItem;
-use App\Models\MenuItemAddon;
-use App\Models\MenuItemVariant;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderItemAddon;
@@ -28,6 +26,7 @@ use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -131,19 +130,20 @@ class DatabaseSeeder extends Seeder
     // -------------------------------------------------------------------------
     // Restaurants — 10 approved, each with full menu
     // -------------------------------------------------------------------------
-    private function seedRestaurants(): \Illuminate\Support\Collection
+    /** @return Collection<int, Restaurant> */
+    private function seedRestaurants(): Collection
     {
         $restaurantData = [
-            ["Gabby's Bistro",             'Filipino',      "Perdices St"],
-            ['Sans Rival Cakes & Pastries','Cafe & Pastry', "Flores Ave"],
-            ['Lab-as Seafood Grill',        'Seafood',       "Rizal Blvd"],
-            ['El Amigo Restaurant',         'Filipino',      "Real St"],
-            ['Why Not Restaurant',          'Grill & Bar',   "Hibbard Ave"],
-            ['Chin Loong Restaurant',       'Chinese',       "Locsin St"],
-            ['Shawarma Snack Center',       'Fast Food',     "Campanario St"],
-            ["Hayahay Treehouse",          'Grill & BBQ',   "EJ Blanco Dr"],
-            ["Pepita's Kitchen",           'Filipino',      "Dr. V. Locsin St"],
-            ['Brocolight Healthy Eats',    'Healthy',       "Silliman Ave"],
+            ["Gabby's Bistro",             'Filipino',      'Perdices St'],
+            ['Sans Rival Cakes & Pastries', 'Cafe & Pastry', 'Flores Ave'],
+            ['Lab-as Seafood Grill',        'Seafood',       'Rizal Blvd'],
+            ['El Amigo Restaurant',         'Filipino',      'Real St'],
+            ['Why Not Restaurant',          'Grill & Bar',   'Hibbard Ave'],
+            ['Chin Loong Restaurant',       'Chinese',       'Locsin St'],
+            ['Shawarma Snack Center',       'Fast Food',     'Campanario St'],
+            ['Hayahay Treehouse',          'Grill & BBQ',   'EJ Blanco Dr'],
+            ["Pepita's Kitchen",           'Filipino',      'Dr. V. Locsin St'],
+            ['Brocolight Healthy Eats',    'Healthy',       'Silliman Ave'],
         ];
 
         $barangays = ['Bantayan', 'Piapi', 'Looc', 'Taclobo', 'Bagacay', 'Daro', 'Calindagan', 'Poblacion'];
@@ -153,11 +153,10 @@ class DatabaseSeeder extends Seeder
             $brgy = $barangays[array_rand($barangays)];
 
             $user = User::factory()->restaurantOwner()->create([
-                'name' => $name . ' Owner',
-                'email' => Str::slug($name) . '@foodjett.ph',
+                'name' => $name.' Owner',
+                'email' => Str::slug($name).'@foodjett.ph',
             ]);
 
-            /** @var Restaurant $restaurant */
             $restaurant = Restaurant::create([
                 'user_id' => $user->id,
                 'name' => $name,
@@ -253,7 +252,7 @@ class DatabaseSeeder extends Seeder
                 ]);
 
                 // 50% chance of having Size variants (Small / Regular / Large)
-                if (fake()->boolean(50) && !str_contains($categoryName, 'Drinks')) {
+                if (fake()->boolean(50) && ! str_contains($categoryName, 'Drinks')) {
                     foreach ([['Small', -20], ['Regular', 0], ['Large', 30]] as [$sizeName, $delta]) {
                         $item->variants()->create(['name' => $sizeName, 'price_delta' => $delta]);
                     }
@@ -281,7 +280,8 @@ class DatabaseSeeder extends Seeder
     // -------------------------------------------------------------------------
     // Riders — 15 total, ~12 approved
     // -------------------------------------------------------------------------
-    private function seedRiders(): \Illuminate\Support\Collection
+    /** @return Collection<int, Rider> */
+    private function seedRiders(): Collection
     {
         $riderNames = [
             'Arjay Flores', 'Dennis Ramos', 'Kevin Cruz', 'Gilbert Santos',
@@ -295,7 +295,7 @@ class DatabaseSeeder extends Seeder
 
             $user = User::factory()->rider()->create([
                 'name' => $name,
-                'email' => Str::slug($name, '.') . '@foodjett.ph',
+                'email' => Str::slug($name, '.').'@foodjett.ph',
             ]);
 
             $rider = Rider::create([
@@ -332,7 +332,8 @@ class DatabaseSeeder extends Seeder
     // -------------------------------------------------------------------------
     // Customers — 30 with 1–3 addresses each
     // -------------------------------------------------------------------------
-    private function seedCustomers(): \Illuminate\Support\Collection
+    /** @return Collection<int, Customer> */
+    private function seedCustomers(): Collection
     {
         $streets = [
             'Perdices St', 'Locsin St', 'Real St', 'Rizal Blvd', 'Flores Ave',
@@ -360,7 +361,7 @@ class DatabaseSeeder extends Seeder
                 CustomerAddress::create([
                     'customer_id' => $customer->id,
                     'label' => $i === 0 ? 'Home' : fake()->randomElement(['Work', 'School', 'Other']),
-                    'address_line' => fake()->buildingNumber() . ' ' . $street . ', Brgy. ' . $brgy . ', Dumaguete City',
+                    'address_line' => fake()->buildingNumber().' '.$street.', Brgy. '.$brgy.', Dumaguete City',
                     'landmark' => $landmarks[array_rand($landmarks)],
                     'delivery_instructions' => fake()->optional(0.3)->sentence(),
                     'latitude' => fake()->randomFloat(7, 9.3000, 9.3200),
@@ -376,48 +377,55 @@ class DatabaseSeeder extends Seeder
     // -------------------------------------------------------------------------
     // Orders — 100 orders across all statuses
     // -------------------------------------------------------------------------
+    /**
+     * @param  Collection<int, Restaurant>  $restaurants
+     * @param  Collection<int, Rider>  $riders
+     * @param  Collection<int, Customer>  $customers
+     */
     private function seedOrders(
-        \Illuminate\Support\Collection $restaurants,
-        \Illuminate\Support\Collection $riders,
-        \Illuminate\Support\Collection $customers
+        Collection $restaurants,
+        Collection $riders,
+        Collection $customers
     ): void {
         $approvedRiders = $riders->where('approval_status', 'approved')->values();
 
         // Status distribution across 100 orders
         $statusPool = array_merge(
             array_fill(0, 50, 'delivered'),
-            array_fill(0, 8,  'cancelled_by_customer'),
-            array_fill(0, 5,  'cancelled_by_restaurant'),
-            array_fill(0, 4,  'rejected_by_restaurant'),
-            array_fill(0, 5,  'cancelled_no_rider'),
-            array_fill(0, 5,  'finding_rider'),
-            array_fill(0, 4,  'placed'),
-            array_fill(0, 3,  'accepted'),
-            array_fill(0, 3,  'preparing'),
-            array_fill(0, 3,  'rider_assigned'),
-            array_fill(0, 3,  'on_the_way'),
-            array_fill(0, 3,  'arrived'),
-            array_fill(0, 2,  'failed_delivery'),
+            array_fill(0, 8, 'cancelled_by_customer'),
+            array_fill(0, 5, 'cancelled_by_restaurant'),
+            array_fill(0, 4, 'rejected_by_restaurant'),
+            array_fill(0, 5, 'cancelled_no_rider'),
+            array_fill(0, 5, 'finding_rider'),
+            array_fill(0, 4, 'placed'),
+            array_fill(0, 3, 'accepted'),
+            array_fill(0, 3, 'preparing'),
+            array_fill(0, 3, 'rider_assigned'),
+            array_fill(0, 3, 'on_the_way'),
+            array_fill(0, 3, 'arrived'),
+            array_fill(0, 2, 'failed_delivery'),
         );
         shuffle($statusPool);
 
         $orderNum = 1;
 
         foreach ($statusPool as $status) {
-            /** @var Restaurant $restaurant */
             $restaurant = $restaurants->random();
 
-            /** @var Customer $customer */
             $customer = $customers->random();
             $address = $customer->addresses->first();
-            if (!$address) continue;
+            if (! $address) {
+                continue;
+            }
 
             // Gather available menu items for this restaurant
             $menuItems = MenuItem::whereHas('category', fn ($q) => $q->where('restaurant_id', $restaurant->id))
                 ->where('is_available', true)
                 ->get();
 
-            if ($menuItems->isEmpty()) continue;
+            if ($menuItems->isEmpty()) {
+                continue;
+            }
 
             $placedAt = Carbon::now()->subDays(rand(1, 90))->subHours(rand(0, 23));
             $paymentMethod = fake()->randomElement(['cod', 'gcash', 'card']);
@@ -432,7 +440,8 @@ class DatabaseSeeder extends Seeder
                     ? $menuItem->variants->random()
                     : null;
 
-                $unitPrice = (float) $menuItem->base_price + (float) ($variant?->price_delta ?? 0);
+                $variantPrice = $variant === null ? 0.0 : (float) $variant->price_delta;
+                $unitPrice = (float) $menuItem->base_price + $variantPrice;
                 $qty = fake()->numberBetween(1, 3);
                 $lineTotal = $unitPrice * $qty;
 
@@ -501,9 +510,8 @@ class DatabaseSeeder extends Seeder
                 $cancelledBy = 'rider';
             }
 
-            /** @var Order $order */
             $order = Order::create([
-                'order_number' => 'FJ-' . str_pad($orderNum++, 6, '0', STR_PAD_LEFT),
+                'order_number' => 'FJ-'.str_pad((string) $orderNum++, 6, '0', STR_PAD_LEFT),
                 'customer_id' => $customer->id,
                 'restaurant_id' => $restaurant->id,
                 'customer_address_id' => $address->id,
@@ -533,7 +541,7 @@ class DatabaseSeeder extends Seeder
                 'picked_up_at' => $timestamps['picked_up_at'] ?? null,
                 'delivered_at' => $timestamps['delivered_at'] ?? null,
                 'pickup_code' => in_array($status, self::RIDER_STATUSES) ? strtoupper(Str::random(4)) : null,
-                'proof_of_delivery_path' => $status === 'delivered' ? 'proofs/' . Str::uuid() . '.jpg' : null,
+                'proof_of_delivery_path' => $status === 'delivered' ? 'proofs/'.Str::uuid().'.jpg' : null,
             ]);
 
             // Order items
@@ -665,6 +673,8 @@ class DatabaseSeeder extends Seeder
 
     /**
      * Build a chronologically-consistent timestamp map for a given status.
+     *
+     * @return array<string, Carbon|null>
      */
     private function buildTimestamps(string $status, Carbon $placedAt): array
     {
@@ -677,12 +687,13 @@ class DatabaseSeeder extends Seeder
             if ($status === 'cancelled_by_customer') {
                 // Cancelled before acceptance — no further timestamps
             }
+
             // rejected_by_restaurant — also no accepted_at
             return $ts;
         }
 
         // Accepted
-        if (!in_array($status, ['placed'])) {
+        if (! in_array($status, ['placed'])) {
             $ts['accepted_at'] = $placedAt->copy()->addMinutes(rand(2, 8));
             $ts['estimated_ready_at'] = $ts['accepted_at']->copy()->addMinutes(rand(10, 25));
         }
@@ -692,14 +703,20 @@ class DatabaseSeeder extends Seeder
         }
 
         if ($status === 'accepted' || $status === 'preparing') {
+            $acceptedAt = $ts['accepted_at'] ?? null;
+            if ($acceptedAt === null) {
+                return $ts;
+            }
+
             $ts['ready_at'] = $status === 'preparing'
-                ? $ts['accepted_at']->copy()->addMinutes(rand(5, 15))
+                ? $acceptedAt->copy()->addMinutes(rand(5, 15))
                 : null;
+
             return $ts;
         }
 
         // ready → finding_rider
-        if (!isset($ts['accepted_at'])) {
+        if (! isset($ts['accepted_at'])) {
             return $ts;
         }
         $ts['ready_at'] = $ts['accepted_at']->copy()->addMinutes(rand(10, 25));
@@ -712,22 +729,30 @@ class DatabaseSeeder extends Seeder
         // Rider assigned
         $ts['rider_assigned_at'] = $ts['rider_search_started_at']->copy()->addMinutes(rand(2, 10));
 
-        if ($status === 'rider_assigned') return $ts;
+        if ($status === 'rider_assigned') {
+            return $ts;
+        }
 
         // At restaurant
         $ts['rider_arrived_restaurant_at'] = $ts['rider_assigned_at']->copy()->addMinutes(rand(5, 15));
 
-        if ($status === 'at_restaurant') return $ts;
+        if ($status === 'at_restaurant') {
+            return $ts;
+        }
 
         // Picked up
         $ts['picked_up_at'] = $ts['rider_arrived_restaurant_at']->copy()->addMinutes(rand(2, 10));
 
-        if ($status === 'picked_up') return $ts;
+        if ($status === 'picked_up') {
+            return $ts;
+        }
 
         // On the way → arrived → delivered/failed
         $arrivedAt = $ts['picked_up_at']->copy()->addMinutes(rand(10, 30));
 
-        if ($status === 'on_the_way') return $ts;
+        if ($status === 'on_the_way') {
+            return $ts;
+        }
 
         if (in_array($status, ['arrived', 'delivered', 'failed_delivery'])) {
             $ts['delivered_at'] = $status === 'delivered'
@@ -740,26 +765,28 @@ class DatabaseSeeder extends Seeder
 
     /**
      * Write OrderStatusHistory entries tracing the order's lifecycle.
+     *
+     * @param  array<string, Carbon|null>  $timestamps
      */
     private function createStatusHistory(Order $order, string $status, array $timestamps): void
     {
         $flow = [
-            'placed'                  => ['placed_at',                    'customer'],
-            'accepted'                => ['accepted_at',                   'restaurant'],
-            'preparing'               => ['accepted_at',                   'restaurant'],
-            'ready'                   => ['ready_at',                      'restaurant'],
-            'finding_rider'           => ['rider_search_started_at',       'system'],
-            'rider_assigned'          => ['rider_assigned_at',             'system'],
-            'at_restaurant'           => ['rider_arrived_restaurant_at',   'rider'],
-            'picked_up'               => ['picked_up_at',                  'rider'],
-            'on_the_way'              => ['picked_up_at',                  'rider'],
-            'arrived'                 => ['picked_up_at',                  'rider'],
-            'delivered'               => ['delivered_at',                  'rider'],
-            'rejected_by_restaurant'  => ['placed_at',                     'restaurant'],
-            'cancelled_by_customer'   => ['placed_at',                     'customer'],
+            'placed' => ['placed_at',                    'customer'],
+            'accepted' => ['accepted_at',                   'restaurant'],
+            'preparing' => ['accepted_at',                   'restaurant'],
+            'ready' => ['ready_at',                      'restaurant'],
+            'finding_rider' => ['rider_search_started_at',       'system'],
+            'rider_assigned' => ['rider_assigned_at',             'system'],
+            'at_restaurant' => ['rider_arrived_restaurant_at',   'rider'],
+            'picked_up' => ['picked_up_at',                  'rider'],
+            'on_the_way' => ['picked_up_at',                  'rider'],
+            'arrived' => ['picked_up_at',                  'rider'],
+            'delivered' => ['delivered_at',                  'rider'],
+            'rejected_by_restaurant' => ['placed_at',                     'restaurant'],
+            'cancelled_by_customer' => ['placed_at',                     'customer'],
             'cancelled_by_restaurant' => ['accepted_at',                   'restaurant'],
-            'cancelled_no_rider'      => ['rider_search_started_at',       'system'],
-            'failed_delivery'         => ['delivered_at',                  'rider'],
+            'cancelled_no_rider' => ['rider_search_started_at',       'system'],
+            'failed_delivery' => ['delivered_at',                  'rider'],
         ];
 
         // Always write placed

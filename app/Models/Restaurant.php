@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Database\Factories\RestaurantFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Restaurant extends Model
 {
+    /** @use HasFactory<RestaurantFactory> */
     use HasFactory;
 
     protected $fillable = [
@@ -30,41 +32,49 @@ class Restaurant extends Model
         ];
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /** @return HasMany<RestaurantDocument, $this> */
     public function documents(): HasMany
     {
         return $this->hasMany(RestaurantDocument::class);
     }
 
+    /** @return HasMany<RestaurantOperatingHour, $this> */
     public function operatingHours(): HasMany
     {
         return $this->hasMany(RestaurantOperatingHour::class);
     }
 
+    /** @return HasMany<MenuCategory, $this> */
     public function menuCategories(): HasMany
     {
         return $this->hasMany(MenuCategory::class);
     }
 
+    /** @return HasMany<Order, $this> */
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
     }
 
+    /** @return HasMany<RestaurantReview, $this> */
     public function reviews(): HasMany
     {
         return $this->hasMany(RestaurantReview::class);
     }
 
+    /** @return HasMany<RestaurantPayout, $this> */
     public function payouts(): HasMany
     {
         return $this->hasMany(RestaurantPayout::class);
     }
 
+    /** @return HasMany<Voucher, $this> */
     public function vouchers(): HasMany
     {
         return $this->hasMany(Voucher::class);

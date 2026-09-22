@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Models\Voucher;
 use App\Models\Restaurant;
+use App\Models\Voucher;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -27,6 +27,7 @@ class VoucherFactory extends Factory
                 'percentage' => $this->faker->randomElement([5, 10, 15, 20]),
                 'fixed' => $this->faker->randomElement([30, 50, 80, 100]),
                 'free_delivery' => null,
+                default => throw new \LogicException('Unsupported voucher type.'),
             },
             'min_order_amount' => $this->faker->randomElement([0, 100, 150, 200]),
             'usage_limit_total' => $this->faker->optional(0.7)->randomElement([50, 100, 200, 500]),

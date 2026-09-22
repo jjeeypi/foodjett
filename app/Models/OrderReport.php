@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OrderReport extends Model
 {
+    /** @use HasFactory<Factory<static>> */
     use HasFactory;
 
     protected $fillable = [
@@ -28,11 +30,13 @@ class OrderReport extends Model
         return $this->belongsTo(Order::class);
     }
 
+    /** @return BelongsTo<User, $this> */
     public function reportedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reported_by_user_id');
     }
 
+    /** @return BelongsTo<Admin, $this> */
     public function resolvedByAdmin(): BelongsTo
     {
         return $this->belongsTo(Admin::class, 'resolved_by_admin_id');

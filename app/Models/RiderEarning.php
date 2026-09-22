@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use Database\Factories\RiderEarningFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RiderEarning extends Model
 {
+    /** @use HasFactory<RiderEarningFactory> */
     use HasFactory;
 
     protected $fillable = [
@@ -27,11 +29,13 @@ class RiderEarning extends Model
         ];
     }
 
+    /** @return BelongsTo<Rider, $this> */
     public function rider(): BelongsTo
     {
         return $this->belongsTo(Rider::class);
     }
 
+    /** @return BelongsTo<Order, $this> */
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
