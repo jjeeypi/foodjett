@@ -23,6 +23,7 @@ class OrderItemAddon extends Model
         ];
     }
 
+    /** @return BelongsTo<OrderItem, $this> */
     public function orderItem(): BelongsTo
     {
         return $this->belongsTo(OrderItem::class);

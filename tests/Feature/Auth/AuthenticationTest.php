@@ -2,6 +2,9 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\Admin;
+use App\Models\Restaurant;
+use App\Models\Rider;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\RateLimiter;
@@ -29,7 +32,7 @@ class AuthenticationTest extends TestCase
         ]);
 
         $this->assertAuthenticated();
-        $response->assertRedirect(route('dashboard', absolute: false));
+        $response->assertRedirect(route('customer.dashboard', absolute: false));
     }
 
     public function test_users_with_two_factor_enabled_are_redirected_to_two_factor_challenge()
@@ -63,6 +66,69 @@ class AuthenticationTest extends TestCase
         ]);
 
         $this->assertGuest();
+    }
+
+    public function test_inactive_users_are_logged_back_out_after_authentication(): void
+    {
+        $user = User::factory()->create(['status' => 'banned']);
+
+        $response = $this->post(route('login.store'), [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $response
+            ->assertRedirect(route('login'))
+            ->assertSessionHas('status', 'Your account has been banned. Contact support if you believe this is a mistake.');
+        $this->assertGuest();
+    }
+
+    public function test_admins_are_redirected_to_the_admin_dashboard(): void
+    {
+        $admin = Admin::factory()->create()->user;
+
+        $response = $this->post(route('login.store'), [
+            'email' => $admin->email,
+            'password' => 'password',
+        ]);
+
+        $response->assertRedirect(route('admin.dashboard', absolute: false));
+    }
+
+    public function test_pending_restaurants_are_redirected_to_the_pending_page(): void
+    {
+        $restaurant = Restaurant::factory()->create(['approval_status' => 'pending']);
+
+        $response = $this->post(route('login.store'), [
+            'email' => $restaurant->user->email,
+            'password' => 'password',
+        ]);
+
+        $response->assertRedirect(route('restaurant.pending', absolute: false));
+    }
+
+    public function test_approved_restaurants_are_redirected_to_their_dashboard(): void
+    {
+        $restaurant = Restaurant::factory()->approved()->create();
+
+        $response = $this->post(route('login.store'), [
+            'email' => $restaurant->user->email,
+            'password' => 'password',
+        ]);
+
+        $response->assertRedirect(route('restaurant.dashboard', absolute: false));
+    }
+
+    public function test_pending_riders_are_redirected_to_the_pending_page(): void
+    {
+        $rider = Rider::factory()->create(['approval_status' => 'pending']);
+
+        $response = $this->post(route('login.store'), [
+            'email' => $rider->user->email,
+            'password' => 'password',
+        ]);
+
+        $response->assertRedirect(route('rider.pending', absolute: false));
     }
 
     public function test_users_can_logout()

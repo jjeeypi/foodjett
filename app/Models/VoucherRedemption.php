@@ -21,6 +21,7 @@ class VoucherRedemption extends Model
         ];
     }
 
+    /** @return BelongsTo<Voucher, $this> */
     public function voucher(): BelongsTo
     {
         return $this->belongsTo(Voucher::class);

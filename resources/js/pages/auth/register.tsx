@@ -7,6 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { login } from '@/routes';
+import {
+    restaurant as registerRestaurant,
+    rider as registerRider,
+} from '@/routes/register';
 import { store } from '@/routes/register';
 
 type Props = {
@@ -106,6 +110,20 @@ export default function Register({ passwordRules }: Props) {
                             <TextLink href={login()} tabIndex={6}>
                                 Log in
                             </TextLink>
+                        </div>
+
+                        <div className="border-border grid gap-2 border-t pt-5 text-center text-sm">
+                            <span className="text-muted-foreground">
+                                Joining FoodJett as a partner?
+                            </span>
+                            <div className="flex justify-center gap-4">
+                                <TextLink href={registerRestaurant()}>
+                                    Register a restaurant
+                                </TextLink>
+                                <TextLink href={registerRider()}>
+                                    Become a rider
+                                </TextLink>
+                            </div>
                         </div>
                     </>
                 )}

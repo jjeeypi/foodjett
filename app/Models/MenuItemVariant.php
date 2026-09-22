@@ -23,6 +23,7 @@ class MenuItemVariant extends Model
         ];
     }
 
+    /** @return BelongsTo<MenuItem, $this> */
     public function menuItem(): BelongsTo
     {
         return $this->belongsTo(MenuItem::class);

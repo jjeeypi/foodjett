@@ -40,7 +40,7 @@ class RiderFactory extends Factory
     {
         return $this->state(fn () => [
             'approval_status' => 'approved',
-            'availability_status' => 'online',
+            'availability_status' => 'available',
         ]);
     }
 }

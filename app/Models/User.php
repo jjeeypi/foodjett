@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -36,7 +37,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  */
 #[Fillable(['name', 'email', 'phone', 'password', 'role', 'status', 'avatar_path', 'last_login_at'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
-class User extends Authenticatable implements PasskeyUser
+class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
@@ -54,39 +55,91 @@ class User extends Authenticatable implements PasskeyUser
         ];
     }
 
+    /** @return HasOne<Admin, $this> */
     public function admin(): HasOne
     {
         return $this->hasOne(Admin::class);
     }
 
+    /** @return HasOne<Restaurant, $this> */
     public function restaurant(): HasOne
     {
         return $this->hasOne(Restaurant::class);
     }
 
+    /** @return HasOne<Rider, $this> */
     public function rider(): HasOne
     {
         return $this->hasOne(Rider::class);
     }
 
+    /** @return HasOne<Customer, $this> */
     public function customer(): HasOne
     {
         return $this->hasOne(Customer::class);
     }
 
+    /** @return HasMany<SupportTicket, $this> */
     public function supportTickets(): HasMany
     {
         return $this->hasMany(SupportTicket::class);
     }
 
     /** Custom app notifications (distinct from Laravel's built-in Notifiable system). */
+    /** @return HasMany<Notification, $this> */
     public function appNotifications(): HasMany
     {
         return $this->hasMany(Notification::class);
     }
 
+    /** @return HasMany<AuditLog, $this> */
     public function auditLogs(): HasMany
     {
         return $this->hasMany(AuditLog::class);
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isRestaurant(): bool
+    {
+        return $this->role === 'restaurant';
+    }
+
+    public function isRider(): bool
+    {
+        return $this->role === 'rider';
+    }
+
+    public function isCustomer(): bool
+    {
+        return $this->role === 'customer';
+    }
+
+    public function isActive(): bool
+    {
+        return $this->status === 'active';
+    }
+
+    public function hasRole(string ...$roles): bool
+    {
+        return in_array($this->role, $roles, true);
+    }
+
+    public function redirectPathAfterLogin(): string
+    {
+        return match ($this->role) {
+            'admin' => route('admin.dashboard', absolute: false),
+            'restaurant' => $this->restaurant?->approval_status === 'approved'
+                ? route('restaurant.dashboard', absolute: false)
+                : route('restaurant.pending', absolute: false),
+            'rider' => $this->rider?->approval_status === 'approved'
+                ? route('rider.dashboard', absolute: false)
+                : route('rider.pending', absolute: false),
+            'customer' => route('customer.dashboard', absolute: false),
+            default => route('home', absolute: false),
+        };
     }
 }
