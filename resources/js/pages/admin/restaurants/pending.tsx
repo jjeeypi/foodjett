@@ -1,56 +1,31 @@
-import { Head, Link, router, useForm } from '@inertiajs/react';
-import { Check, ExternalLink, FileText, MapPin, X } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { Check, MapPin } from 'lucide-react';
 import { useState } from 'react';
+import ApprovalStatusBadge from '@/components/admin/approval-status-badge';
 import { Pagination, type PaginatedData } from '@/components/admin/data-table';
-import InputError from '@/components/input-error';
-import { Badge } from '@/components/ui/badge';
+import DocumentCard, {
+    type ApprovalDocument,
+} from '@/components/admin/document-card';
+import RejectActionDialog from '@/components/admin/reject-action-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-
-type RestaurantDocument = {
-    id: number;
-    type: string;
-    file_path: string;
-    status: 'pending' | 'verified' | 'rejected';
-};
 
 type PendingRestaurant = {
     id: number;
     name: string;
     cuisine_type: string | null;
     address: string;
-    created_at: string;
-    user: {
-        name: string;
-        email: string;
-        phone: string | null;
-    };
-    documents: RestaurantDocument[];
+    approval_status: 'pending';
+    user: { name: string; email: string; phone: string | null };
+    documents: ApprovalDocument[];
 };
-
-const documentUrl = (path: string) =>
-    path.startsWith('http') ? path : `/storage/${path.replace(/^\/+/, '')}`;
-
-const isImage = (path: string) => /\.(jpe?g|png|gif|webp)$/i.test(path);
 
 export default function PendingRestaurants({
     restaurants,
 }: {
     restaurants: PaginatedData<PendingRestaurant>;
 }) {
-    const [rejectingRestaurant, setRejectingRestaurant] =
-        useState<PendingRestaurant | null>(null);
     const [approvingId, setApprovingId] = useState<number | null>(null);
-    const rejectForm = useForm({ reason: '' });
 
     const approve = (restaurant: PendingRestaurant) => {
         setApprovingId(restaurant.id);
@@ -60,23 +35,6 @@ export default function PendingRestaurants({
             {
                 preserveScroll: true,
                 onFinish: () => setApprovingId(null),
-            },
-        );
-    };
-
-    const reject = () => {
-        if (!rejectingRestaurant) {
-            return;
-        }
-
-        rejectForm.patch(
-            `/admin/restaurants/${rejectingRestaurant.id}/reject`,
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    rejectForm.reset();
-                    setRejectingRestaurant(null);
-                },
             },
         );
     };
@@ -91,7 +49,7 @@ export default function PendingRestaurants({
                             Pending restaurant approvals
                         </h2>
                         <p className="text-muted-foreground text-sm">
-                            Oldest submissions are shown first.
+                            Review the oldest applications first.
                         </p>
                     </div>
                     <Button variant="outline" asChild>
@@ -102,7 +60,7 @@ export default function PendingRestaurants({
                 <div className="grid gap-5 xl:grid-cols-2">
                     {restaurants.data.map((restaurant) => (
                         <Card key={restaurant.id}>
-                            <CardHeader className="gap-2">
+                            <CardHeader>
                                 <div className="flex items-start justify-between gap-4">
                                     <div>
                                         <CardTitle>{restaurant.name}</CardTitle>
@@ -111,11 +69,11 @@ export default function PendingRestaurants({
                                                 'Cuisine not provided'}
                                         </p>
                                     </div>
-                                    <Badge variant="outline">Pending</Badge>
+                                    <ApprovalStatusBadge status="pending" />
                                 </div>
                             </CardHeader>
                             <CardContent className="space-y-5">
-                                <div className="grid gap-2 text-sm sm:grid-cols-2">
+                                <div className="grid gap-4 text-sm sm:grid-cols-2">
                                     <div>
                                         <p className="text-muted-foreground text-xs">
                                             Owner
@@ -141,50 +99,19 @@ export default function PendingRestaurants({
                                 </div>
 
                                 <div>
-                                    <p className="mb-2 text-sm font-medium">
+                                    <p className="mb-3 text-sm font-medium">
                                         Submitted documents
                                     </p>
                                     {restaurant.documents.length > 0 ? (
-                                        <div className="grid gap-3 sm:grid-cols-3">
+                                        <div className="grid gap-3 sm:grid-cols-2">
                                             {restaurant.documents.map(
                                                 (document) => (
-                                                    <a
+                                                    <DocumentCard
                                                         key={document.id}
-                                                        href={documentUrl(
-                                                            document.file_path,
-                                                        )}
-                                                        target="_blank"
-                                                        rel="noreferrer"
-                                                        className="hover:bg-muted/50 overflow-hidden rounded-lg border transition-colors"
-                                                    >
-                                                        {isImage(
-                                                            document.file_path,
-                                                        ) ? (
-                                                            <img
-                                                                src={documentUrl(
-                                                                    document.file_path,
-                                                                )}
-                                                                alt={document.type.replace(
-                                                                    '_',
-                                                                    ' ',
-                                                                )}
-                                                                className="h-28 w-full object-cover"
-                                                            />
-                                                        ) : (
-                                                            <div className="bg-muted flex h-28 items-center justify-center">
-                                                                <FileText className="text-muted-foreground size-8" />
-                                                            </div>
-                                                        )}
-                                                        <div className="flex items-center justify-between gap-2 p-2 text-xs capitalize">
-                                                            <span>
-                                                                {document.type.replaceAll(
-                                                                    '_',
-                                                                    ' ',
-                                                                )}
-                                                            </span>
-                                                            <ExternalLink className="size-3" />
-                                                        </div>
-                                                    </a>
+                                                        document={document}
+                                                        verifyUrl={`/admin/restaurants/${restaurant.id}/documents/${document.id}/verify`}
+                                                        rejectUrl={`/admin/restaurants/${restaurant.id}/documents/${document.id}/reject`}
+                                                    />
                                                 ),
                                             )}
                                         </div>
@@ -195,7 +122,7 @@ export default function PendingRestaurants({
                                     )}
                                 </div>
 
-                                <div className="flex flex-col gap-2 border-t pt-4 sm:flex-row sm:justify-end">
+                                <div className="flex flex-wrap justify-end gap-2 border-t pt-4">
                                     <Button variant="outline" asChild>
                                         <Link
                                             href={`/admin/restaurants/${restaurant.id}`}
@@ -203,16 +130,12 @@ export default function PendingRestaurants({
                                             Full details
                                         </Link>
                                     </Button>
-                                    <Button
-                                        variant="destructive"
-                                        onClick={() => {
-                                            rejectForm.clearErrors();
-                                            setRejectingRestaurant(restaurant);
-                                        }}
-                                    >
-                                        <X />
-                                        Reject
-                                    </Button>
+                                    <RejectActionDialog
+                                        action={`/admin/restaurants/${restaurant.id}/reject`}
+                                        subjectName={restaurant.name}
+                                        title="Reject restaurant application"
+                                        description={`Explain what ${restaurant.name} needs to correct before approval.`}
+                                    />
                                     <Button
                                         onClick={() => approve(restaurant)}
                                         disabled={approvingId === restaurant.id}
@@ -240,65 +163,8 @@ export default function PendingRestaurants({
                     <Pagination paginated={restaurants} />
                 </div>
             </div>
-
-            <Dialog
-                open={rejectingRestaurant !== null}
-                onOpenChange={(open) => {
-                    if (!open) {
-                        rejectForm.reset();
-                        rejectForm.clearErrors();
-                        setRejectingRestaurant(null);
-                    }
-                }}
-            >
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Reject restaurant application</DialogTitle>
-                        <DialogDescription>
-                            Explain what {rejectingRestaurant?.name} needs to
-                            correct. The reason will be visible on their
-                            pending-status page.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-2">
-                        <Label htmlFor="rejection-reason">
-                            Rejection reason
-                        </Label>
-                        <textarea
-                            id="rejection-reason"
-                            value={rejectForm.data.reason}
-                            onChange={(event) =>
-                                rejectForm.setData('reason', event.target.value)
-                            }
-                            rows={5}
-                            className="border-input focus-visible:border-ring focus-visible:ring-ring/50 w-full rounded-md border bg-transparent px-3 py-2 text-sm outline-none focus-visible:ring-3"
-                            placeholder="Include the missing or invalid requirements…"
-                        />
-                        <InputError message={rejectForm.errors.reason} />
-                    </div>
-                    <DialogFooter>
-                        <Button
-                            variant="outline"
-                            onClick={() => setRejectingRestaurant(null)}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            variant="destructive"
-                            onClick={reject}
-                            disabled={rejectForm.processing}
-                        >
-                            {rejectForm.processing
-                                ? 'Rejecting…'
-                                : 'Reject application'}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </>
     );
 }
 
-PendingRestaurants.layout = {
-    title: 'Pending restaurant approvals',
-};
+PendingRestaurants.layout = { title: 'Pending restaurant approvals' };

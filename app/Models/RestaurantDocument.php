@@ -17,6 +17,7 @@ class RestaurantDocument extends Model
         'type',
         'file_path',
         'status',
+        'rejection_reason',
     ];
 
     /** @return BelongsTo<Restaurant, $this> */

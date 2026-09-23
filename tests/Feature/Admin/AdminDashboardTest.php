@@ -75,6 +75,8 @@ class AdminDashboardTest extends TestCase
                 ->where('stats.active_riders', 1)
                 ->where('stats.pending_approvals', 2)
                 ->where('unassignedOrdersCount', 1)
+                ->where('adminPendingApprovals.restaurants', 1)
+                ->where('adminPendingApprovals.riders', 1)
                 ->has('recentActivity'));
     }
 

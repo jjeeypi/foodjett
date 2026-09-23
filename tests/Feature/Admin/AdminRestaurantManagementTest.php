@@ -73,7 +73,8 @@ class AdminRestaurantManagementTest extends TestCase
 
         $this->actingAs($admin->user)
             ->patch(route('admin.restaurants.approve', $approvedRestaurant))
-            ->assertRedirect();
+            ->assertRedirect(route('admin.restaurants.pending'))
+            ->assertSessionHas('success');
         $this->assertDatabaseHas('restaurants', [
             'id' => $approvedRestaurant->id,
             'approval_status' => 'approved',
@@ -85,7 +86,8 @@ class AdminRestaurantManagementTest extends TestCase
             ->patch(route('admin.restaurants.reject', $rejectedRestaurant), [
                 'reason' => $reason,
             ])
-            ->assertRedirect();
+            ->assertRedirect(route('admin.restaurants.pending'))
+            ->assertSessionHas('success');
         $this->assertDatabaseHas('restaurants', [
             'id' => $rejectedRestaurant->id,
             'approval_status' => 'rejected',
@@ -93,6 +95,62 @@ class AdminRestaurantManagementTest extends TestCase
             'operating_status' => 'closed',
         ]);
         $this->assertSame(2, AuditLog::query()->count());
+    }
+
+    public function test_admin_can_verify_and_reject_individual_restaurant_documents(): void
+    {
+        $admin = Admin::factory()->create();
+        $restaurant = Restaurant::factory()->create(['approval_status' => 'pending']);
+        $verifiedDocument = RestaurantDocument::factory()->create([
+            'restaurant_id' => $restaurant->id,
+            'status' => 'pending',
+        ]);
+        $rejectedDocument = RestaurantDocument::factory()->create([
+            'restaurant_id' => $restaurant->id,
+            'status' => 'pending',
+        ]);
+
+        $this->actingAs($admin->user)
+            ->patch(route('admin.restaurants.documents.verify', [
+                $restaurant,
+                $verifiedDocument,
+            ]))
+            ->assertRedirect();
+        $this->assertDatabaseHas('restaurant_documents', [
+            'id' => $verifiedDocument->id,
+            'status' => 'verified',
+            'rejection_reason' => null,
+        ]);
+
+        $reason = 'The document image is expired and must be replaced.';
+        $this->actingAs($admin->user)
+            ->patch(route('admin.restaurants.documents.reject', [
+                $restaurant,
+                $rejectedDocument,
+            ]), ['reason' => $reason])
+            ->assertRedirect();
+        $this->assertDatabaseHas('restaurant_documents', [
+            'id' => $rejectedDocument->id,
+            'status' => 'rejected',
+            'rejection_reason' => $reason,
+        ]);
+    }
+
+    public function test_admin_can_update_restaurant_commission(): void
+    {
+        $admin = Admin::factory()->create();
+        $restaurant = Restaurant::factory()->approved()->create();
+
+        $this->actingAs($admin->user)
+            ->patch(route('admin.restaurants.commission', $restaurant), [
+                'commission_rate' => 18.5,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('restaurants', [
+            'id' => $restaurant->id,
+            'commission_rate' => 18.5,
+        ]);
     }
 
     public function test_admin_can_suspend_and_reactivate_a_restaurant_owner_account(): void

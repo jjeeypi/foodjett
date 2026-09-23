@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Restaurant;
+use App\Models\RestaurantDocument;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -26,30 +28,21 @@ class RestaurantController extends Controller
             'approval_status' => ['nullable', Rule::in(['pending', 'approved', 'rejected'])],
         ]);
 
-        $restaurants = Restaurant::query()
-            ->with('user:id,name,email,status')
-            ->withAvg('reviews', 'rating')
-            ->when(
-                $filters['search'] ?? null,
-                fn (Builder $query, string $search) => $query->where(function (Builder $query) use ($search): void {
-                    $query
-                        ->where('name', 'like', "%{$search}%")
-                        ->orWhere('cuisine_type', 'like', "%{$search}%")
-                        ->orWhereHas('user', fn (Builder $userQuery) => $userQuery
-                            ->where('name', 'like', "%{$search}%")
-                            ->orWhere('email', 'like', "%{$search}%"));
-                })
-            )
-            ->when(
-                $filters['approval_status'] ?? null,
-                fn (Builder $query, string $status) => $query->where('approval_status', $status)
-            )
-            ->latest()
-            ->paginate(15)
-            ->withQueryString();
-
         return Inertia::render('admin/restaurants/index', [
-            'restaurants' => $restaurants,
+            'restaurants' => Restaurant::query()
+                ->with('user:id,name,email,status')
+                ->withAvg('reviews', 'rating')
+                ->when(
+                    $filters['search'] ?? null,
+                    fn (Builder $query, string $search) => $query->where('name', 'like', "%{$search}%")
+                )
+                ->when(
+                    $filters['approval_status'] ?? null,
+                    fn (Builder $query, string $status) => $query->where('approval_status', $status)
+                )
+                ->latest()
+                ->paginate(15)
+                ->withQueryString(),
             'filters' => [
                 'search' => $filters['search'] ?? '',
                 'approval_status' => $filters['approval_status'] ?? '',
@@ -77,8 +70,9 @@ class RestaurantController extends Controller
         $restaurant->load([
             'user:id,name,email,phone,status,created_at',
             'documents',
+            'operatingHours' => fn ($query) => $query->orderBy('day_of_week'),
             'menuCategories' => fn ($query) => $query
-                ->with(['menuItems' => fn ($query) => $query->orderBy('name')])
+                ->withCount('menuItems')
                 ->orderBy('sort_order'),
             'orders' => fn ($query) => $query
                 ->with('customer.user:id,name')
@@ -90,19 +84,27 @@ class RestaurantController extends Controller
             ->whereNotNull('estimated_ready_at')
             ->whereNotNull('ready_at')
             ->get(['id', 'estimated_ready_at', 'ready_at']);
-        $accuratePrepOrders = $prepOrders->filter(
-            fn ($order): bool => Carbon::parse($order->ready_at)
-                ->lessThanOrEqualTo(Carbon::parse($order->estimated_ready_at))
-        )->count();
+        $prepVariances = $prepOrders->map(
+            fn ($order): float => Carbon::parse($order->estimated_ready_at)
+                ->diffInMinutes(Carbon::parse($order->ready_at), false)
+        );
+        $onTimeCount = $prepVariances->filter(fn (float $minutes): bool => $minutes <= 0)->count();
 
         return Inertia::render('admin/restaurants/show', [
             'restaurant' => $restaurant,
+            'menuSummary' => [
+                'category_count' => $restaurant->menuCategories->count(),
+                'item_count' => $restaurant->menuCategories->sum('menu_items_count'),
+            ],
             'prepTimeAccuracy' => [
                 'sample_size' => $prepOrders->count(),
-                'on_time_count' => $accuratePrepOrders,
-                'percentage' => $prepOrders->isEmpty()
+                'on_time_count' => $onTimeCount,
+                'on_time_percentage' => $prepOrders->isEmpty()
                     ? null
-                    : round(($accuratePrepOrders / $prepOrders->count()) * 100, 1),
+                    : round(($onTimeCount / $prepOrders->count()) * 100, 1),
+                'average_variance_minutes' => $prepVariances->isEmpty()
+                    ? null
+                    : round($prepVariances->average(), 1),
             ],
         ]);
     }
@@ -116,9 +118,13 @@ class RestaurantController extends Controller
             'approval_status' => 'approved',
             'rejection_reason' => null,
         ]);
-        $this->audit($restaurant, 'restaurant.approved', $before);
+        $this->audit($restaurant, 'restaurant.approved', $before, $restaurant->only([
+            'approval_status',
+            'rejection_reason',
+        ]));
 
-        return back()->with('success', "{$restaurant->name} has been approved.");
+        return to_route('admin.restaurants.pending')
+            ->with('success', "{$restaurant->name} has been approved.");
     }
 
     public function reject(Request $request, Restaurant $restaurant): RedirectResponse
@@ -126,7 +132,7 @@ class RestaurantController extends Controller
         Gate::authorize('reject', $restaurant);
 
         $validated = $request->validate([
-            'reason' => ['required', 'string', 'min:10', 'max:1000'],
+            'reason' => ['required', 'string', 'max:1000'],
         ]);
         $before = $restaurant->only(['approval_status', 'rejection_reason', 'operating_status']);
         $restaurant->update([
@@ -134,9 +140,33 @@ class RestaurantController extends Controller
             'rejection_reason' => $validated['reason'],
             'operating_status' => 'closed',
         ]);
-        $this->audit($restaurant, 'restaurant.rejected', $before);
+        $this->audit($restaurant, 'restaurant.rejected', $before, $restaurant->only([
+            'approval_status',
+            'rejection_reason',
+            'operating_status',
+        ]));
 
-        return back()->with('success', "{$restaurant->name} has been rejected.");
+        return to_route('admin.restaurants.pending')
+            ->with('success', "{$restaurant->name} has been rejected.");
+    }
+
+    public function updateCommission(Request $request, Restaurant $restaurant): RedirectResponse
+    {
+        Gate::authorize('update', $restaurant);
+
+        $validated = $request->validate([
+            'commission_rate' => ['required', 'numeric', 'min:0', 'max:100'],
+        ]);
+        $before = $restaurant->only('commission_rate');
+        $restaurant->update(['commission_rate' => $validated['commission_rate']]);
+        $this->audit(
+            $restaurant,
+            'restaurant.commission_updated',
+            $before,
+            $restaurant->only('commission_rate')
+        );
+
+        return back()->with('success', 'Commission rate updated.');
     }
 
     public function suspend(Request $request, Restaurant $restaurant): RedirectResponse
@@ -148,6 +178,7 @@ class RestaurantController extends Controller
         ]);
         $user = $restaurant->user;
         abort_if($user === null, 422, 'This restaurant does not have an owner account.');
+        abort_if($user->status === 'banned', 422, 'A banned account cannot be toggled with suspension controls.');
 
         $before = [
             'user_status' => $user->status,
@@ -163,10 +194,16 @@ class RestaurantController extends Controller
             }
         });
 
-        $action = $validated['action'] === 'suspend'
-            ? 'restaurant.suspended'
-            : 'restaurant.reactivated';
-        $this->audit($restaurant, $action, $before);
+        $restaurant->refresh();
+        $this->audit(
+            $restaurant,
+            $validated['action'] === 'suspend' ? 'restaurant.suspended' : 'restaurant.reactivated',
+            $before,
+            [
+                'user_status' => $restaurant->user()->value('status'),
+                'operating_status' => $restaurant->operating_status,
+            ]
+        );
 
         return back()->with(
             'success',
@@ -176,25 +213,59 @@ class RestaurantController extends Controller
         );
     }
 
-    /** @param array<string, mixed> $before */
-    private function audit(Restaurant $restaurant, string $action, array $before): void
+    public function verifyDocument(Restaurant $restaurant, RestaurantDocument $document): RedirectResponse
+    {
+        Gate::authorize('approve', $restaurant);
+        Gate::authorize('verify', $document);
+        abort_unless($document->restaurant_id === $restaurant->id, 404);
+
+        $before = $document->only(['status', 'rejection_reason']);
+        $document->update(['status' => 'verified', 'rejection_reason' => null]);
+        $this->audit($document, 'restaurant_document.verified', $before, $document->only([
+            'status',
+            'rejection_reason',
+        ]));
+
+        return back()->with('success', 'Restaurant document verified.');
+    }
+
+    public function rejectDocument(
+        Request $request,
+        Restaurant $restaurant,
+        RestaurantDocument $document
+    ): RedirectResponse {
+        Gate::authorize('approve', $restaurant);
+        Gate::authorize('reject', $document);
+        abort_unless($document->restaurant_id === $restaurant->id, 404);
+
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'max:1000'],
+        ]);
+        $before = $document->only(['status', 'rejection_reason']);
+        $document->update([
+            'status' => 'rejected',
+            'rejection_reason' => $validated['reason'],
+        ]);
+        $this->audit($document, 'restaurant_document.rejected', $before, $document->only([
+            'status',
+            'rejection_reason',
+        ]));
+
+        return back()->with('success', 'Restaurant document rejected.');
+    }
+
+    /**
+     * @param  array<string, mixed>  $before
+     * @param  array<string, mixed>  $after
+     */
+    private function audit(Model $subject, string $action, array $before, array $after): void
     {
         AuditLog::query()->create([
             'user_id' => request()->user()?->id,
             'action' => $action,
-            'subject_type' => Restaurant::class,
-            'subject_id' => $restaurant->id,
-            'changes' => [
-                'before' => $before,
-                'after' => [
-                    ...$restaurant->fresh()->only([
-                        'approval_status',
-                        'rejection_reason',
-                        'operating_status',
-                    ]),
-                    'user_status' => $restaurant->user()->value('status'),
-                ],
-            ],
+            'subject_type' => $subject::class,
+            'subject_id' => (int) $subject->getKey(),
+            'changes' => ['before' => $before, 'after' => $after],
             'created_at' => now(),
         ]);
     }

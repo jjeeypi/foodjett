@@ -31,4 +31,14 @@ class RestaurantDocumentPolicy extends Policy
     {
         return $this->ownsRestaurant($user, $document->restaurant_id);
     }
+
+    public function verify(User $user, RestaurantDocument $document): bool
+    {
+        return $user->isAdmin();
+    }
+
+    public function reject(User $user, RestaurantDocument $document): bool
+    {
+        return $user->isAdmin();
+    }
 }

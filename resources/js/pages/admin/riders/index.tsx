@@ -19,16 +19,15 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 
-type Restaurant = {
+type Rider = {
     id: number;
-    name: string;
-    cuisine_type: string | null;
+    vehicle_type: string;
     approval_status: Extract<
         ApprovalStatus,
         'pending' | 'approved' | 'rejected'
     >;
-    operating_status: 'open' | 'closed' | 'temporarily_closed';
-    commission_rate: string;
+    availability_status: 'offline' | 'available' | 'busy';
+    cash_on_hand: string;
     reviews_avg_rating: number | string | null;
     user: {
         name: string;
@@ -38,11 +37,16 @@ type Restaurant = {
 };
 
 type Props = {
-    restaurants: PaginatedData<Restaurant>;
+    riders: PaginatedData<Rider>;
     filters: { search: string; approval_status: string };
 };
 
-export default function RestaurantsIndex({ restaurants, filters }: Props) {
+const currency = new Intl.NumberFormat('en-PH', {
+    style: 'currency',
+    currency: 'PHP',
+});
+
+export default function RidersIndex({ riders, filters }: Props) {
     const [search, setSearch] = useState(filters.search);
     const [approvalStatus, setApprovalStatus] = useState(
         filters.approval_status || 'all',
@@ -51,7 +55,7 @@ export default function RestaurantsIndex({ restaurants, filters }: Props) {
 
     const visit = (nextSearch: string, nextStatus: string) => {
         router.get(
-            '/admin/restaurants',
+            '/admin/riders',
             {
                 search: nextSearch || undefined,
                 approval_status: nextStatus === 'all' ? undefined : nextStatus,
@@ -60,7 +64,7 @@ export default function RestaurantsIndex({ restaurants, filters }: Props) {
                 preserveState: true,
                 preserveScroll: true,
                 replace: true,
-                only: ['restaurants', 'filters'],
+                only: ['riders', 'filters'],
             },
         );
     };
@@ -82,72 +86,75 @@ export default function RestaurantsIndex({ restaurants, filters }: Props) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [search]);
 
-    const columns: DataTableColumn<Restaurant>[] = [
+    const columns: DataTableColumn<Rider>[] = [
         {
             key: 'name',
-            label: 'Restaurant',
-            render: (restaurant) => (
+            label: 'Rider',
+            render: (rider) => (
                 <div>
-                    <p className="font-medium">{restaurant.name}</p>
+                    <p className="font-medium">{rider.user.name}</p>
                     <p className="text-muted-foreground text-xs">
-                        {restaurant.user.name}
+                        {rider.user.email}
                     </p>
                 </div>
             ),
         },
         {
-            key: 'cuisine',
-            label: 'Cuisine',
-            render: (restaurant) => restaurant.cuisine_type || '—',
+            key: 'vehicle',
+            label: 'Vehicle',
+            render: (rider) => (
+                <span className="capitalize">
+                    {rider.vehicle_type.replace('_', ' ')}
+                </span>
+            ),
         },
         {
             key: 'approval',
             label: 'Approval',
-            render: (restaurant) => (
-                <ApprovalStatusBadge status={restaurant.approval_status} />
+            render: (rider) => (
+                <ApprovalStatusBadge status={rider.approval_status} />
             ),
         },
         {
-            key: 'operating',
-            label: 'Operating',
-            render: (restaurant) => (
+            key: 'availability',
+            label: 'Availability',
+            render: (rider) => (
                 <Badge variant="outline" className="capitalize">
-                    {restaurant.operating_status.replace('_', ' ')}
+                    {rider.availability_status}
                 </Badge>
             ),
         },
         {
             key: 'rating',
             label: 'Rating',
-            render: (restaurant) =>
-                restaurant.reviews_avg_rating === null
+            render: (rider) =>
+                rider.reviews_avg_rating === null
                     ? 'No reviews'
-                    : `${Number(restaurant.reviews_avg_rating).toFixed(1)} / 5`,
+                    : `${Number(rider.reviews_avg_rating).toFixed(1)} / 5`,
         },
         {
-            key: 'commission',
-            label: 'Commission',
+            key: 'cash',
+            label: 'Cash on hand',
             className: 'text-right',
-            render: (restaurant) =>
-                `${Number(restaurant.commission_rate).toFixed(2)}%`,
+            render: (rider) => currency.format(Number(rider.cash_on_hand)),
         },
     ];
 
     return (
         <>
-            <Head title="Restaurants" />
+            <Head title="Riders" />
             <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
                 <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
                     <div>
                         <h2 className="text-2xl font-semibold tracking-tight">
-                            Restaurants
+                            Riders
                         </h2>
                         <p className="text-muted-foreground text-sm">
-                            Select a row to review the restaurant profile.
+                            Select a row to review the rider profile.
                         </p>
                     </div>
                     <Button variant="outline" asChild>
-                        <Link href="/admin/restaurants/pending">
+                        <Link href="/admin/riders/pending">
                             Pending approvals
                         </Link>
                     </Button>
@@ -159,7 +166,7 @@ export default function RestaurantsIndex({ restaurants, filters }: Props) {
                         <Input
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
-                            placeholder="Search restaurant name…"
+                            placeholder="Search rider name…"
                             className="pl-9"
                         />
                     </div>
@@ -184,16 +191,14 @@ export default function RestaurantsIndex({ restaurants, filters }: Props) {
 
                 <DataTable
                     columns={columns}
-                    paginated={restaurants}
-                    rowKey={(restaurant) => restaurant.id}
-                    rowHref={(restaurant) =>
-                        `/admin/restaurants/${restaurant.id}`
-                    }
-                    emptyMessage="No restaurants match these filters."
+                    paginated={riders}
+                    rowKey={(rider) => rider.id}
+                    rowHref={(rider) => `/admin/riders/${rider.id}`}
+                    emptyMessage="No riders match these filters."
                 />
             </div>
         </>
     );
 }
 
-RestaurantsIndex.layout = { title: 'Restaurants' };
+RidersIndex.layout = { title: 'Riders' };

@@ -1,10 +1,8 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import {
     ArrowLeft,
     Check,
     Clock3,
-    ExternalLink,
-    FileText,
     Mail,
     MapPin,
     Phone,
@@ -13,28 +11,31 @@ import {
     Star,
     Utensils,
 } from 'lucide-react';
+import ApprovalStatusBadge, {
+    type ApprovalStatus,
+} from '@/components/admin/approval-status-badge';
+import DocumentCard, {
+    type ApprovalDocument,
+} from '@/components/admin/document-card';
+import InputError from '@/components/input-error';
+import RejectActionDialog from '@/components/admin/reject-action-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
-type RestaurantDocument = {
+type OperatingHour = {
     id: number;
-    type: string;
-    file_path: string;
-    status: 'pending' | 'verified' | 'rejected';
-};
-
-type MenuItem = {
-    id: number;
-    name: string;
-    base_price: string;
-    is_available: boolean;
+    day_of_week: number;
+    opens_at: string;
+    closes_at: string;
 };
 
 type MenuCategory = {
     id: number;
     name: string;
-    menu_items: MenuItem[];
+    menu_items_count: number;
 };
 
 type RecentOrder = {
@@ -44,9 +45,7 @@ type RecentOrder = {
     total_amount: string;
     payment_method: string;
     placed_at: string;
-    customer: {
-        user: { name: string } | null;
-    } | null;
+    customer: { user: { name: string } } | null;
 };
 
 type Restaurant = {
@@ -60,7 +59,10 @@ type Restaurant = {
     default_prep_time_minutes: number;
     min_order_amount: string;
     commission_rate: string;
-    approval_status: 'pending' | 'approved' | 'rejected';
+    approval_status: Extract<
+        ApprovalStatus,
+        'pending' | 'approved' | 'rejected'
+    >;
     rejection_reason: string | null;
     operating_status: 'open' | 'closed' | 'temporarily_closed';
     reviews_avg_rating: number | string | null;
@@ -70,17 +72,22 @@ type Restaurant = {
         email: string;
         phone: string | null;
         status: 'active' | 'suspended' | 'banned';
-        created_at: string;
     };
-    documents: RestaurantDocument[];
+    documents: ApprovalDocument[];
+    operating_hours: OperatingHour[];
     menu_categories: MenuCategory[];
     orders: RecentOrder[];
 };
 
-type PrepTimeAccuracy = {
-    sample_size: number;
-    on_time_count: number;
-    percentage: number | null;
+type Props = {
+    restaurant: Restaurant;
+    menuSummary: { category_count: number; item_count: number };
+    prepTimeAccuracy: {
+        sample_size: number;
+        on_time_count: number;
+        on_time_percentage: number | null;
+        average_variance_minutes: number | null;
+    };
 };
 
 const currency = new Intl.NumberFormat('en-PH', {
@@ -88,35 +95,37 @@ const currency = new Intl.NumberFormat('en-PH', {
     currency: 'PHP',
 });
 
-const documentUrl = (path: string) =>
-    path.startsWith('http') ? path : `/storage/${path.replace(/^\/+/, '')}`;
+const dayNames = [
+    'Sunday',
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+];
 
-const isImage = (path: string) => /\.(jpe?g|png|gif|webp)$/i.test(path);
-
-const statusClass = (status: string) => {
-    if (
-        ['approved', 'active', 'open', 'verified', 'delivered'].includes(status)
-    ) {
-        return 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300';
-    }
-
-    if (['pending', 'placed', 'preparing', 'finding_rider'].includes(status)) {
-        return 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300';
-    }
-
-    return '';
-};
+const formatTime = (time: string) =>
+    new Date(`2000-01-01T${time}`).toLocaleTimeString([], {
+        hour: 'numeric',
+        minute: '2-digit',
+    });
 
 export default function RestaurantShow({
     restaurant,
+    menuSummary,
     prepTimeAccuracy,
-}: {
-    restaurant: Restaurant;
-    prepTimeAccuracy: PrepTimeAccuracy;
-}) {
-    const suspended = restaurant.user.status !== 'active';
+}: Props) {
+    const suspended = restaurant.user.status === 'suspended';
+    const commissionForm = useForm({
+        commission_rate: restaurant.commission_rate,
+    });
 
-    const updateSuspension = () => {
+    const approve = () => {
+        router.patch(`/admin/restaurants/${restaurant.id}/approve`);
+    };
+
+    const toggleSuspension = () => {
         router.patch(
             `/admin/restaurants/${restaurant.id}/suspension`,
             { action: suspended ? 'reactivate' : 'suspend' },
@@ -124,12 +133,10 @@ export default function RestaurantShow({
         );
     };
 
-    const approve = () => {
-        router.patch(
-            `/admin/restaurants/${restaurant.id}/approve`,
-            {},
-            { preserveScroll: true },
-        );
+    const updateCommission = () => {
+        commissionForm.patch(`/admin/restaurants/${restaurant.id}/commission`, {
+            preserveScroll: true,
+        });
     };
 
     return (
@@ -139,8 +146,7 @@ export default function RestaurantShow({
                 <div>
                     <Button variant="ghost" size="sm" className="mb-3" asChild>
                         <Link href="/admin/restaurants">
-                            <ArrowLeft />
-                            Back to restaurants
+                            <ArrowLeft /> Back to restaurants
                         </Link>
                     </Button>
                     <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
@@ -149,55 +155,51 @@ export default function RestaurantShow({
                                 <h2 className="text-2xl font-semibold tracking-tight">
                                     {restaurant.name}
                                 </h2>
-                                <Badge
-                                    variant="outline"
-                                    className={statusClass(
-                                        restaurant.approval_status,
-                                    )}
-                                >
-                                    {restaurant.approval_status}
-                                </Badge>
-                                <Badge
-                                    variant="outline"
-                                    className={statusClass(
-                                        restaurant.user.status,
-                                    )}
-                                >
+                                <ApprovalStatusBadge
+                                    status={restaurant.approval_status}
+                                />
+                                <Badge variant="outline" className="capitalize">
                                     Account {restaurant.user.status}
                                 </Badge>
                             </div>
                             <p className="text-muted-foreground mt-1 text-sm">
                                 {restaurant.cuisine_type ||
-                                    'Cuisine not provided'}{' '}
-                                · Member since{' '}
-                                {new Date(
-                                    restaurant.created_at,
-                                ).toLocaleDateString()}
+                                    'Cuisine not provided'}
                             </p>
                         </div>
                         <div className="flex flex-wrap gap-2">
                             {restaurant.approval_status === 'pending' && (
-                                <Button onClick={approve}>
-                                    <Check />
-                                    Approve
+                                <>
+                                    <RejectActionDialog
+                                        action={`/admin/restaurants/${restaurant.id}/reject`}
+                                        subjectName={restaurant.name}
+                                        title="Reject restaurant application"
+                                    />
+                                    <Button onClick={approve}>
+                                        <Check /> Approve
+                                    </Button>
+                                </>
+                            )}
+                            {restaurant.user.status !== 'banned' && (
+                                <Button
+                                    variant={
+                                        suspended ? 'default' : 'destructive'
+                                    }
+                                    onClick={toggleSuspension}
+                                >
+                                    {suspended ? <Power /> : <ShieldBan />}
+                                    {suspended ? 'Reactivate' : 'Suspend'}
                                 </Button>
                             )}
-                            <Button
-                                variant={suspended ? 'default' : 'destructive'}
-                                onClick={updateSuspension}
-                            >
-                                {suspended ? <Power /> : <ShieldBan />}
-                                {suspended
-                                    ? 'Reactivate account'
-                                    : 'Suspend account'}
-                            </Button>
                         </div>
                     </div>
                 </div>
 
                 {restaurant.rejection_reason && (
                     <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-                        <p className="font-medium">Rejection reason</p>
+                        <p className="font-medium">
+                            Application rejection reason
+                        </p>
                         <p className="mt-1">{restaurant.rejection_reason}</p>
                     </div>
                 )}
@@ -206,7 +208,7 @@ export default function RestaurantShow({
                     <div className="space-y-6 xl:col-span-2">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Restaurant profile</CardTitle>
+                                <CardTitle>Profile</CardTitle>
                             </CardHeader>
                             <CardContent className="grid gap-5 text-sm sm:grid-cols-2">
                                 <div className="space-y-3">
@@ -218,28 +220,23 @@ export default function RestaurantShow({
                                             {restaurant.user.name}
                                         </p>
                                     </div>
-                                    <div className="flex items-center gap-2">
+                                    <p className="flex items-center gap-2 break-all">
                                         <Mail className="text-muted-foreground size-4" />
-                                        <span className="break-all">
-                                            {restaurant.user.email}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
+                                        {restaurant.user.email}
+                                    </p>
+                                    <p className="flex items-center gap-2">
                                         <Phone className="text-muted-foreground size-4" />
-                                        <span>
-                                            {restaurant.user.phone ||
-                                                'No phone'}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-start gap-2">
+                                        {restaurant.user.phone || 'No phone'}
+                                    </p>
+                                    <p className="flex items-start gap-2">
                                         <MapPin className="text-muted-foreground mt-0.5 size-4 shrink-0" />
-                                        <span>{restaurant.address}</span>
-                                    </div>
+                                        {restaurant.address}
+                                    </p>
                                 </div>
                                 <dl className="grid grid-cols-2 gap-4">
                                     <div>
                                         <dt className="text-muted-foreground text-xs">
-                                            Operating status
+                                            Operating
                                         </dt>
                                         <dd className="mt-1 capitalize">
                                             {restaurant.operating_status.replace(
@@ -250,13 +247,13 @@ export default function RestaurantShow({
                                     </div>
                                     <div>
                                         <dt className="text-muted-foreground text-xs">
-                                            Default prep time
+                                            Default prep
                                         </dt>
                                         <dd className="mt-1">
                                             {
                                                 restaurant.default_prep_time_minutes
                                             }{' '}
-                                            min
+                                            minutes
                                         </dd>
                                     </div>
                                     <div>
@@ -272,17 +269,6 @@ export default function RestaurantShow({
                                         </dd>
                                     </div>
                                     <div>
-                                        <dt className="text-muted-foreground text-xs">
-                                            Commission
-                                        </dt>
-                                        <dd className="mt-1">
-                                            {Number(
-                                                restaurant.commission_rate,
-                                            ).toFixed(2)}
-                                            %
-                                        </dd>
-                                    </div>
-                                    <div className="col-span-2">
                                         <dt className="text-muted-foreground text-xs">
                                             Coordinates
                                         </dt>
@@ -302,60 +288,19 @@ export default function RestaurantShow({
 
                         <Card>
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <FileText className="size-5" />
-                                    Documents
-                                </CardTitle>
+                                <CardTitle>Documents</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 {restaurant.documents.length > 0 ? (
                                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                                         {restaurant.documents.map(
                                             (document) => (
-                                                <a
+                                                <DocumentCard
                                                     key={document.id}
-                                                    href={documentUrl(
-                                                        document.file_path,
-                                                    )}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    className="hover:bg-muted/50 overflow-hidden rounded-lg border transition-colors"
-                                                >
-                                                    {isImage(
-                                                        document.file_path,
-                                                    ) ? (
-                                                        <img
-                                                            src={documentUrl(
-                                                                document.file_path,
-                                                            )}
-                                                            alt={document.type.replace(
-                                                                '_',
-                                                                ' ',
-                                                            )}
-                                                            className="h-32 w-full object-cover"
-                                                        />
-                                                    ) : (
-                                                        <div className="bg-muted flex h-32 items-center justify-center">
-                                                            <FileText className="text-muted-foreground size-8" />
-                                                        </div>
-                                                    )}
-                                                    <div className="flex items-center justify-between gap-3 p-3">
-                                                        <div>
-                                                            <p className="text-sm font-medium capitalize">
-                                                                {document.type.replaceAll(
-                                                                    '_',
-                                                                    ' ',
-                                                                )}
-                                                            </p>
-                                                            <p className="text-muted-foreground text-xs capitalize">
-                                                                {
-                                                                    document.status
-                                                                }
-                                                            </p>
-                                                        </div>
-                                                        <ExternalLink className="size-4" />
-                                                    </div>
-                                                </a>
+                                                    document={document}
+                                                    verifyUrl={`/admin/restaurants/${restaurant.id}/documents/${document.id}/verify`}
+                                                    rejectUrl={`/admin/restaurants/${restaurant.id}/documents/${document.id}/reject`}
+                                                />
                                             ),
                                         )}
                                     </div>
@@ -369,59 +314,40 @@ export default function RestaurantShow({
 
                         <Card>
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Utensils className="size-5" />
-                                    Menu preview
-                                </CardTitle>
+                                <CardTitle>Operating hours</CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-5">
-                                {restaurant.menu_categories.length > 0 ? (
-                                    restaurant.menu_categories.map(
-                                        (category) => (
-                                            <div key={category.id}>
-                                                <h3 className="mb-2 text-sm font-semibold">
-                                                    {category.name}
-                                                </h3>
-                                                <div className="divide-y rounded-lg border">
-                                                    {category.menu_items.map(
-                                                        (item) => (
-                                                            <div
-                                                                key={item.id}
-                                                                className="flex items-center justify-between gap-4 px-3 py-2 text-sm"
-                                                            >
-                                                                <span>
-                                                                    {item.name}
-                                                                    {!item.is_available && (
-                                                                        <span className="text-muted-foreground ml-2 text-xs">
-                                                                            Unavailable
-                                                                        </span>
-                                                                    )}
-                                                                </span>
-                                                                <span className="tabular-nums">
-                                                                    {currency.format(
-                                                                        Number(
-                                                                            item.base_price,
-                                                                        ),
-                                                                    )}
-                                                                </span>
-                                                            </div>
-                                                        ),
-                                                    )}
-                                                    {category.menu_items
-                                                        .length === 0 && (
-                                                        <p className="text-muted-foreground px-3 py-4 text-sm">
-                                                            No menu items in
-                                                            this category.
-                                                        </p>
-                                                    )}
+                            <CardContent>
+                                {restaurant.operating_hours.length > 0 ? (
+                                    <div className="divide-y rounded-lg border">
+                                        {restaurant.operating_hours.map(
+                                            (hour) => (
+                                                <div
+                                                    key={hour.id}
+                                                    className="flex justify-between gap-4 px-3 py-2 text-sm"
+                                                >
+                                                    <span>
+                                                        {
+                                                            dayNames[
+                                                                hour.day_of_week
+                                                            ]
+                                                        }
+                                                    </span>
+                                                    <span className="text-muted-foreground">
+                                                        {formatTime(
+                                                            hour.opens_at,
+                                                        )}{' '}
+                                                        –{' '}
+                                                        {formatTime(
+                                                            hour.closes_at,
+                                                        )}
+                                                    </span>
                                                 </div>
-                                            </div>
-                                        ),
-                                    )
+                                            ),
+                                        )}
+                                    </div>
                                 ) : (
                                     <p className="text-muted-foreground text-sm">
-                                        This restaurant has not created a menu
-                                        yet.
+                                        No operating hours configured.
                                     </p>
                                 )}
                             </CardContent>
@@ -466,21 +392,14 @@ export default function RestaurantShow({
                                                             <td className="px-3 py-2">
                                                                 {order.customer
                                                                     ?.user
-                                                                    ?.name ||
+                                                                    .name ||
                                                                     'Customer'}
                                                             </td>
-                                                            <td className="px-3 py-2">
-                                                                <Badge
-                                                                    variant="outline"
-                                                                    className={statusClass(
-                                                                        order.status,
-                                                                    )}
-                                                                >
-                                                                    {order.status.replaceAll(
-                                                                        '_',
-                                                                        ' ',
-                                                                    )}
-                                                                </Badge>
+                                                            <td className="px-3 py-2 capitalize">
+                                                                {order.status.replaceAll(
+                                                                    '_',
+                                                                    ' ',
+                                                                )}
                                                             </td>
                                                             <td className="px-3 py-2 uppercase">
                                                                 {
@@ -502,20 +421,107 @@ export default function RestaurantShow({
                                     </div>
                                 ) : (
                                     <p className="text-muted-foreground text-sm">
-                                        No orders have been placed with this
-                                        restaurant.
+                                        No orders for this restaurant.
                                     </p>
                                 )}
                             </CardContent>
                         </Card>
                     </div>
 
-                    <div className="space-y-6">
+                    <aside className="space-y-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Commission rate</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <form
+                                    className="space-y-3"
+                                    onSubmit={(event) => {
+                                        event.preventDefault();
+                                        updateCommission();
+                                    }}
+                                >
+                                    <Label htmlFor="commission-rate">
+                                        Platform commission (%)
+                                    </Label>
+                                    <div className="flex gap-2">
+                                        <Input
+                                            id="commission-rate"
+                                            type="number"
+                                            min="0"
+                                            max="100"
+                                            step="0.01"
+                                            value={
+                                                commissionForm.data
+                                                    .commission_rate
+                                            }
+                                            onChange={(event) =>
+                                                commissionForm.setData(
+                                                    'commission_rate',
+                                                    event.target.value,
+                                                )
+                                            }
+                                        />
+                                        <Button
+                                            type="submit"
+                                            disabled={commissionForm.processing}
+                                        >
+                                            Save
+                                        </Button>
+                                    </div>
+                                    <InputError
+                                        message={
+                                            commissionForm.errors
+                                                .commission_rate
+                                        }
+                                    />
+                                </form>
+                            </CardContent>
+                        </Card>
+
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
-                                    <Star className="size-5" />
-                                    Rating
+                                    <Utensils className="size-5" /> Menu
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                <div className="grid grid-cols-2 gap-3 text-center">
+                                    <div className="bg-muted rounded-lg p-3">
+                                        <p className="text-2xl font-semibold">
+                                            {menuSummary.category_count}
+                                        </p>
+                                        <p className="text-muted-foreground text-xs">
+                                            Categories
+                                        </p>
+                                    </div>
+                                    <div className="bg-muted rounded-lg p-3">
+                                        <p className="text-2xl font-semibold">
+                                            {menuSummary.item_count}
+                                        </p>
+                                        <p className="text-muted-foreground text-xs">
+                                            Items
+                                        </p>
+                                    </div>
+                                </div>
+                                {restaurant.menu_categories.map((category) => (
+                                    <div
+                                        key={category.id}
+                                        className="flex justify-between gap-3 text-sm"
+                                    >
+                                        <span>{category.name}</span>
+                                        <span className="text-muted-foreground">
+                                            {category.menu_items_count}
+                                        </span>
+                                    </div>
+                                ))}
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Star className="size-5" /> Rating
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
@@ -537,30 +543,41 @@ export default function RestaurantShow({
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
-                                    <Clock3 className="size-5" />
-                                    Prep-time accuracy
+                                    <Clock3 className="size-5" /> Prep accuracy
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="space-y-2">
                                 <p className="text-3xl font-semibold">
-                                    {prepTimeAccuracy.percentage === null
+                                    {prepTimeAccuracy.on_time_percentage ===
+                                    null
                                         ? '—'
-                                        : `${prepTimeAccuracy.percentage}%`}
+                                        : `${prepTimeAccuracy.on_time_percentage}%`}
                                 </p>
-                                <p className="text-muted-foreground mt-1 text-sm">
+                                <p className="text-muted-foreground text-sm">
                                     {prepTimeAccuracy.sample_size === 0
-                                        ? 'No completed prep-time samples yet.'
-                                        : `${prepTimeAccuracy.on_time_count} of ${prepTimeAccuracy.sample_size} orders ready by the estimate.`}
+                                        ? 'No completed prep samples.'
+                                        : `${prepTimeAccuracy.on_time_count} of ${prepTimeAccuracy.sample_size} ready by the estimate.`}
                                 </p>
+                                {prepTimeAccuracy.average_variance_minutes !==
+                                    null && (
+                                    <p className="text-sm">
+                                        Average:{' '}
+                                        {prepTimeAccuracy.average_variance_minutes >
+                                        0
+                                            ? `${prepTimeAccuracy.average_variance_minutes} min late`
+                                            : prepTimeAccuracy.average_variance_minutes <
+                                                0
+                                              ? `${Math.abs(prepTimeAccuracy.average_variance_minutes)} min early`
+                                              : 'on time'}
+                                    </p>
+                                )}
                             </CardContent>
                         </Card>
-                    </div>
+                    </aside>
                 </div>
             </div>
         </>
     );
 }
 
-RestaurantShow.layout = {
-    title: 'Restaurant details',
-};
+RestaurantShow.layout = { title: 'Restaurant details' };

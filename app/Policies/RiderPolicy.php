@@ -31,4 +31,19 @@ class RiderPolicy extends Policy
     {
         return $rider->user_id === $user->id;
     }
+
+    public function approve(User $user, Rider $rider): bool
+    {
+        return $user->isAdmin();
+    }
+
+    public function reject(User $user, Rider $rider): bool
+    {
+        return $user->isAdmin();
+    }
+
+    public function suspend(User $user, Rider $rider): bool
+    {
+        return $user->isAdmin();
+    }
 }

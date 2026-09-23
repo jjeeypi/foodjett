@@ -22,7 +22,7 @@ class RiderDocumentFactory extends Factory
             'rider_id' => Rider::factory(),
             'type' => $type,
             'file_path' => 'documents/riders/'.$type.'_'.$this->faker->uuid().'.jpg',
-            'status' => $this->faker->randomElement(['pending', 'approved', 'approved']),
+            'status' => $this->faker->randomElement(['pending', 'verified', 'verified']),
         ];
     }
 }

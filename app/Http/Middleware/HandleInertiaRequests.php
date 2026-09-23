@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Restaurant;
+use App\Models\Rider;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -41,6 +43,12 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            'adminPendingApprovals' => fn (): ?array => $request->user()?->isAdmin()
+                ? [
+                    'restaurants' => Restaurant::query()->where('approval_status', 'pending')->count(),
+                    'riders' => Rider::query()->where('approval_status', 'pending')->count(),
+                ]
+                : null,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

@@ -31,4 +31,14 @@ class RiderDocumentPolicy extends Policy
     {
         return $this->ownsRider($user, $document->rider_id);
     }
+
+    public function verify(User $user, RiderDocument $document): bool
+    {
+        return $user->isAdmin();
+    }
+
+    public function reject(User $user, RiderDocument $document): bool
+    {
+        return $user->isAdmin();
+    }
 }

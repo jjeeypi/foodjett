@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\RestaurantController as AdminRestaurantController;
+use App\Http\Controllers\Admin\RiderController as AdminRiderController;
 use App\Http\Controllers\AdminRemittanceController;
 use App\Http\Controllers\Auth\RegisteredRestaurantController;
 use App\Http\Controllers\Auth\RegisteredRiderController;
@@ -49,13 +50,31 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->name('restaurants.reject');
         Route::patch('restaurants/{restaurant}/suspension', [AdminRestaurantController::class, 'suspend'])
             ->name('restaurants.suspension');
+        Route::patch('restaurants/{restaurant}/commission', [AdminRestaurantController::class, 'updateCommission'])
+            ->name('restaurants.commission');
+        Route::patch('restaurants/{restaurant}/documents/{document}/verify', [AdminRestaurantController::class, 'verifyDocument'])
+            ->name('restaurants.documents.verify');
+        Route::patch('restaurants/{restaurant}/documents/{document}/reject', [AdminRestaurantController::class, 'rejectDocument'])
+            ->name('restaurants.documents.reject');
+
+        Route::get('riders', [AdminRiderController::class, 'index'])->name('riders.index');
+        Route::get('riders/pending', [AdminRiderController::class, 'pending'])->name('riders.pending');
+        Route::get('riders/{rider}', [AdminRiderController::class, 'show'])->name('riders.show');
+        Route::patch('riders/{rider}/approve', [AdminRiderController::class, 'approve'])
+            ->name('riders.approve');
+        Route::patch('riders/{rider}/reject', [AdminRiderController::class, 'reject'])
+            ->name('riders.reject');
+        Route::patch('riders/{rider}/suspension', [AdminRiderController::class, 'suspend'])
+            ->name('riders.suspension');
+        Route::patch('riders/{rider}/documents/{document}/verify', [AdminRiderController::class, 'verifyDocument'])
+            ->name('riders.documents.verify');
+        Route::patch('riders/{rider}/documents/{document}/reject', [AdminRiderController::class, 'rejectDocument'])
+            ->name('riders.documents.reject');
 
         Route::get('remittances', [AdminRemittanceController::class, 'index'])->name('remittances.index');
         Route::patch('remittances/{remittance}/confirm', [AdminRemittanceController::class, 'confirm'])
             ->name('remittances.confirm');
 
-        Route::inertia('riders', 'admin/coming-soon', ['title' => 'Riders'])->name('riders.index');
-        Route::inertia('riders/pending', 'admin/coming-soon', ['title' => 'Pending rider approvals'])->name('riders.pending');
         Route::inertia('customers', 'admin/coming-soon', ['title' => 'Customers'])->name('customers.index');
         Route::inertia('orders', 'admin/coming-soon', ['title' => 'Orders'])->name('orders.index');
         Route::inertia('orders/unassigned', 'admin/coming-soon', ['title' => 'Unassigned orders'])->name('orders.unassigned');

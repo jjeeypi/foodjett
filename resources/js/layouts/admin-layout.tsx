@@ -31,6 +31,7 @@ import {
     SidebarHeader,
     SidebarInset,
     SidebarMenu,
+    SidebarMenuBadge,
     SidebarMenuButton,
     SidebarMenuItem,
     SidebarTrigger,
@@ -49,6 +50,7 @@ type AdminNavItem = {
     href: string;
     icon: LucideIcon;
     exact?: boolean;
+    pendingCount?: 'restaurants' | 'riders';
 };
 
 type AdminNavSection = {
@@ -81,6 +83,7 @@ const navSections: AdminNavSection[] = [
                 title: 'Pending approvals',
                 href: '/admin/restaurants/pending',
                 icon: ShieldCheck,
+                pendingCount: 'restaurants',
             },
         ],
     },
@@ -97,6 +100,7 @@ const navSections: AdminNavSection[] = [
                 title: 'Pending approvals',
                 href: '/admin/riders/pending',
                 icon: ShieldCheck,
+                pendingCount: 'riders',
             },
         ],
     },
@@ -203,6 +207,7 @@ export default function AdminLayout({
 }: AdminLayoutProps) {
     const page = usePage();
     const { auth } = page.props;
+    const pendingApprovals = page.props.adminPendingApprovals;
     const { currentUrl } = useCurrentUrl();
     const resolvedTitle =
         typeof page.props.title === 'string' ? page.props.title : title;
@@ -255,6 +260,19 @@ export default function AdminLayout({
                                                 <span>{item.title}</span>
                                             </Link>
                                         </SidebarMenuButton>
+                                        {item.pendingCount &&
+                                            pendingApprovals &&
+                                            pendingApprovals[
+                                                item.pendingCount
+                                            ] > 0 && (
+                                                <SidebarMenuBadge>
+                                                    {
+                                                        pendingApprovals[
+                                                            item.pendingCount
+                                                        ]
+                                                    }
+                                                </SidebarMenuBadge>
+                                            )}
                                     </SidebarMenuItem>
                                 ))}
                             </SidebarMenu>

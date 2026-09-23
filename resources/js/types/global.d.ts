@@ -11,6 +11,10 @@ declare module '@inertiajs/core' {
         sharedPageProps: {
             name: string;
             auth: Auth;
+            adminPendingApprovals: {
+                restaurants: number;
+                riders: number;
+            } | null;
             sidebarOpen: boolean;
             [key: string]: unknown;
         };

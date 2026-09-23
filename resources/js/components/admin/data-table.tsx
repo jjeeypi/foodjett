@@ -1,4 +1,4 @@
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -35,6 +35,7 @@ type DataTableProps<Row> = {
     paginated: PaginatedData<Row>;
     emptyMessage?: string;
     rowKey: (row: Row) => number | string;
+    rowHref?: (row: Row) => string;
 };
 
 const paginationLabel = (label: string) =>
@@ -95,6 +96,7 @@ export default function DataTable<Row>({
     paginated,
     emptyMessage = 'No records found.',
     rowKey,
+    rowHref,
 }: DataTableProps<Row>) {
     return (
         <div className="overflow-hidden rounded-xl border">
@@ -119,7 +121,28 @@ export default function DataTable<Row>({
                         {paginated.data.map((row) => (
                             <tr
                                 key={rowKey(row)}
-                                className="hover:bg-muted/30 transition-colors"
+                                tabIndex={rowHref ? 0 : undefined}
+                                role={rowHref ? 'link' : undefined}
+                                onClick={() => {
+                                    if (rowHref) {
+                                        router.visit(rowHref(row));
+                                    }
+                                }}
+                                onKeyDown={(event) => {
+                                    if (
+                                        rowHref &&
+                                        (event.key === 'Enter' ||
+                                            event.key === ' ')
+                                    ) {
+                                        event.preventDefault();
+                                        router.visit(rowHref(row));
+                                    }
+                                }}
+                                className={cn(
+                                    'hover:bg-muted/30 transition-colors',
+                                    rowHref &&
+                                        'focus-visible:ring-ring cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-inset',
+                                )}
                             >
                                 {columns.map((column) => (
                                     <td
