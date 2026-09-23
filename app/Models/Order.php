@@ -135,7 +135,8 @@ class Order extends Model
     {
         return in_array($this->status, [
             'rejected_by_restaurant', 'cancelled_by_customer',
-            'cancelled_by_restaurant', 'cancelled_no_rider', 'failed_delivery', 'delivered',
+            'cancelled_by_restaurant', 'cancelled_no_rider', 'cancelled_by_admin',
+            'failed_delivery', 'delivered',
         ]);
     }
 
@@ -143,7 +144,7 @@ class Order extends Model
     {
         return in_array($this->status, [
             'rejected_by_restaurant', 'cancelled_by_customer',
-            'cancelled_by_restaurant', 'cancelled_no_rider',
+            'cancelled_by_restaurant', 'cancelled_no_rider', 'cancelled_by_admin',
         ]);
     }
 }

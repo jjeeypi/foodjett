@@ -51,6 +51,21 @@ class OrderPolicy extends Policy
         return $this->ownsCustomer($user, $order->customer_id);
     }
 
+    public function assignRider(User $user, Order $order): bool
+    {
+        return $user->isAdmin();
+    }
+
+    public function cancelAsAdmin(User $user, Order $order): bool
+    {
+        return $user->isAdmin();
+    }
+
+    public function refund(User $user, Order $order): bool
+    {
+        return $user->isAdmin();
+    }
+
     public function delete(User $user, Order $order): bool
     {
         return false;

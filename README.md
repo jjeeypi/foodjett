@@ -52,10 +52,15 @@ Currently functional:
 - Restaurant approval/rejection and account suspension/reactivation.
 - Rider approval queue, document moderation, delivery history, performance metrics, and account suspension/reactivation.
 - Per-document verification and rejection reasons for restaurant and rider applications.
+- Paginated order operations list with status, restaurant, date-range, and order-number filters.
+- Full order detail with items, delivery address, status/payment timelines, and rider-pool context.
+- Escalated unassigned-order queue with 20-second polling and distance-sorted manual rider assignment.
+- Order cancellation, internal refund recording, and auditable administrator actions.
+- Paginated dispute reports with resolve/reject decisions and administrator attribution.
 - Paginated and searchable rider cash remittances.
 - Audit entries for restaurant and rider moderation actions.
 
-The sidebar also establishes routes and placeholder pages for customers, orders, categories, promotions, transactions, payouts, reviews, platform settings, delivery zones, administrators, and audit logs. Those modules do not yet contain their final business features.
+The sidebar also establishes routes and placeholder pages for customers, categories, promotions, transactions, payouts, reviews, platform settings, delivery zones, administrators, and audit logs. Those modules do not yet contain their final business features.
 
 ## Application routes
 
@@ -238,7 +243,7 @@ PHPUnit uses SQLite in-memory through `phpunit.xml`, so CI does not require the 
 app/
 ├── Actions/Orders/             Shared order creation logic
 ├── Console/Commands/           Administrator creation command
-├── Http/Controllers/Admin/     Admin dashboard and restaurant management
+├── Http/Controllers/Admin/     Admin dashboard, approvals, and order operations
 ├── Http/Middleware/            Role, approval, and active-account checks
 ├── Models/                     Marketplace domain models
 ├── Policies/                   Role and ownership authorization
@@ -254,7 +259,7 @@ resources/js/
 └── pages/rider/                Rider orders and remittances
 
 tests/Feature/
-├── Admin/                      Admin dashboard and restaurant workflows
+├── Admin/                      Admin dashboard, approvals, and order workflows
 ├── Auth/                       Authentication and registration
 ├── Authorization/              Ownership policies
 └── Payments/                   PayMongo and COD cash-flow tests
@@ -268,7 +273,10 @@ tests/Feature/
 - Prep-time accuracy counts orders whose `ready_at` timestamp is on or before `estimated_ready_at`.
 - Restaurant approval and individual document verification are separate states.
 - Restaurant and rider registration do not yet upload approval documents. Document upload should be added to registration or a dedicated onboarding/profile-completion step using the public storage disk.
-- Most admin navigation modules are placeholders; only the modules listed as functional above should be treated as complete.
+- Nearby-rider ordering uses straight-line Haversine distance from the restaurant, not road distance or ETA.
+- Administrator refunds currently update FoodJett's payment ledger and status history only; PayMongo API refunds still need a gateway-specific integration and reconciliation flow.
+- Administrator cancellation does not automatically refund a paid order or notify participants; those workflows should be added once notification and refund policy are defined.
+- Most remaining admin navigation modules are placeholders; only the modules listed as functional above should be treated as complete.
 
 ## License
 

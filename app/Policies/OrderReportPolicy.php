@@ -28,6 +28,16 @@ class OrderReportPolicy extends Policy
         return false;
     }
 
+    public function resolve(User $user, OrderReport $report): bool
+    {
+        return $user->isAdmin();
+    }
+
+    public function reject(User $user, OrderReport $report): bool
+    {
+        return $user->isAdmin();
+    }
+
     public function delete(User $user, OrderReport $report): bool
     {
         return $report->reported_by_user_id === $user->id && $report->status === 'open';

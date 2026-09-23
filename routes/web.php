@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Admin\RestaurantController as AdminRestaurantController;
 use App\Http\Controllers\Admin\RiderController as AdminRiderController;
 use App\Http\Controllers\AdminRemittanceController;
@@ -71,14 +72,29 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('riders/{rider}/documents/{document}/reject', [AdminRiderController::class, 'rejectDocument'])
             ->name('riders.documents.reject');
 
+        Route::get('orders', [AdminOrderController::class, 'index'])->name('orders.index');
+        Route::get('orders/unassigned', [AdminOrderController::class, 'unassigned'])->name('orders.unassigned');
+        Route::get('orders/reports', [AdminOrderController::class, 'reports'])->name('orders.reports');
+        Route::get('orders/reports/{report}', [AdminOrderController::class, 'showReport'])->name('orders.reports.show');
+        Route::patch('orders/reports/{report}/resolve', [AdminOrderController::class, 'resolveReport'])
+            ->name('orders.reports.resolve');
+        Route::patch('orders/reports/{report}/reject', [AdminOrderController::class, 'rejectReport'])
+            ->name('orders.reports.reject');
+        Route::get('orders/{order}/nearby-riders', [AdminOrderController::class, 'nearbyRiders'])
+            ->name('orders.nearby-riders');
+        Route::patch('orders/{order}/assign-rider', [AdminOrderController::class, 'assignRider'])
+            ->name('orders.assign-rider');
+        Route::patch('orders/{order}/cancel', [AdminOrderController::class, 'cancel'])
+            ->name('orders.cancel');
+        Route::patch('orders/{order}/refund', [AdminOrderController::class, 'refund'])
+            ->name('orders.refund');
+        Route::get('orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
+
         Route::get('remittances', [AdminRemittanceController::class, 'index'])->name('remittances.index');
         Route::patch('remittances/{remittance}/confirm', [AdminRemittanceController::class, 'confirm'])
             ->name('remittances.confirm');
 
         Route::inertia('customers', 'admin/coming-soon', ['title' => 'Customers'])->name('customers.index');
-        Route::inertia('orders', 'admin/coming-soon', ['title' => 'Orders'])->name('orders.index');
-        Route::inertia('orders/unassigned', 'admin/coming-soon', ['title' => 'Unassigned orders'])->name('orders.unassigned');
-        Route::inertia('orders/reports', 'admin/coming-soon', ['title' => 'Order reports'])->name('orders.reports');
         Route::inertia('categories', 'admin/coming-soon', ['title' => 'Categories'])->name('categories.index');
         Route::inertia('promotions', 'admin/coming-soon', ['title' => 'Promotions'])->name('promotions.index');
         Route::inertia('transactions', 'admin/coming-soon', ['title' => 'Transactions'])->name('transactions.index');
