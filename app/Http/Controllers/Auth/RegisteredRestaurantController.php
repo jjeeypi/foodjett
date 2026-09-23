@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\RegisterRestaurantRequest;
+use App\Models\PlatformSetting;
 use App\Models\Restaurant;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
@@ -45,6 +46,7 @@ class RegisteredRestaurantController extends Controller
                 'latitude' => $data['latitude'],
                 'longitude' => $data['longitude'],
                 'cuisine_type' => $data['cuisine_type'],
+                'commission_rate' => PlatformSetting::getFloat('default_commission_rate', 15.0),
                 'approval_status' => 'pending',
                 'operating_status' => 'closed',
             ]);

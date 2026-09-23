@@ -61,9 +61,12 @@ Currently functional:
 - Restaurant payout generation from delivered food sales, with commission deductions and overlap protection.
 - Rider payout generation from delivered-order earnings, with paid-state tracking.
 - Paginated and searchable rider cash remittances.
-- Audit entries for moderation, refunds, payout generation/payment, and cash-remittance confirmation.
+- Platform settings editor for rider-search timing/radius values and the default restaurant commission.
+- Circular delivery-zone creation, editing, activation, and deletion.
+- Administrator account creation, suspension, and reactivation with self-lockout protection.
+- Audit entries for moderation, refunds, payout generation/payment, cash-remittance confirmation, settings, delivery zones, and administrator accounts.
 
-The sidebar also establishes routes and placeholder pages for customers, categories, promotions, reviews, platform settings, delivery zones, administrators, and audit logs. Those modules do not yet contain their final business features.
+The sidebar also establishes routes and placeholder pages for customers, categories, promotions, reviews, and audit logs. Those modules do not yet contain their final business features.
 
 ## Application routes
 
@@ -284,6 +287,11 @@ tests/Feature/
 - Rider payout periods use each earning's related order `delivered_at` timestamp. Payout cadence is administrator-selected rather than fixed to weekly or biweekly.
 - Overlapping payout periods for the same restaurant or rider are skipped to avoid paying the same work twice.
 - Marking a payout paid does not yet initiate a bank/e-wallet transfer or notify its recipient.
+- The default commission setting applies to newly registered restaurants. Existing restaurants retain their individually stored commission rate.
+- Rider search and escalation settings are ready for runtime use, but the project does not yet contain the queue job that widens the search, adds incentives, alerts admins/customers, or auto-cancels orders. That worker should read values through `PlatformSetting::get()`, `getInt()`, or `getFloat()` when it is implemented.
+- Delivery zones are edited as center latitude/longitude plus radius and stored as circle JSON. Editing a legacy GeoJSON polygon converts its bounding area to an approximate circle.
+- Checkout/address validation against active delivery zones is not implemented yet. Zone changes therefore do not currently affect in-progress checkouts.
+- Creating or changing an administrator account does not send an automatic notification. Credentials and status changes must be communicated separately.
 - Most remaining admin navigation modules are placeholders; only the modules listed as functional above should be treated as complete.
 
 ## License

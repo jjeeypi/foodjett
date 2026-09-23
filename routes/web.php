@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\FinanceController as AdminFinanceController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Admin\RestaurantController as AdminRestaurantController;
 use App\Http\Controllers\Admin\RiderController as AdminRiderController;
+use App\Http\Controllers\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\AdminRemittanceController;
 use App\Http\Controllers\Auth\RegisteredRestaurantController;
 use App\Http\Controllers\Auth\RegisteredRiderController;
@@ -115,9 +116,24 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::inertia('categories', 'admin/coming-soon', ['title' => 'Categories'])->name('categories.index');
         Route::inertia('promotions', 'admin/coming-soon', ['title' => 'Promotions'])->name('promotions.index');
         Route::inertia('reviews', 'admin/coming-soon', ['title' => 'Reviews'])->name('reviews.index');
-        Route::inertia('settings/platform', 'admin/coming-soon', ['title' => 'Platform settings'])->name('settings.platform');
-        Route::inertia('settings/delivery-zones', 'admin/coming-soon', ['title' => 'Delivery zones'])->name('settings.delivery-zones');
-        Route::inertia('settings/admins', 'admin/coming-soon', ['title' => 'Administrators'])->name('settings.admins');
+        Route::get('settings/platform', [AdminSettingController::class, 'platform'])->name('settings.platform');
+        Route::patch('settings/platform', [AdminSettingController::class, 'updatePlatform'])
+            ->name('settings.platform.update');
+        Route::get('settings/delivery-zones', [AdminSettingController::class, 'deliveryZones'])
+            ->name('settings.delivery-zones');
+        Route::post('settings/delivery-zones', [AdminSettingController::class, 'storeDeliveryZone'])
+            ->name('settings.delivery-zones.store');
+        Route::patch('settings/delivery-zones/{deliveryZone}', [AdminSettingController::class, 'updateDeliveryZone'])
+            ->name('settings.delivery-zones.update');
+        Route::patch('settings/delivery-zones/{deliveryZone}/toggle', [AdminSettingController::class, 'toggleDeliveryZone'])
+            ->name('settings.delivery-zones.toggle');
+        Route::delete('settings/delivery-zones/{deliveryZone}', [AdminSettingController::class, 'destroyDeliveryZone'])
+            ->name('settings.delivery-zones.destroy');
+        Route::get('settings/admins', [AdminSettingController::class, 'admins'])->name('settings.admins');
+        Route::post('settings/admins', [AdminSettingController::class, 'storeAdmin'])
+            ->name('settings.admins.store');
+        Route::patch('settings/admins/{user}/status', [AdminSettingController::class, 'updateAdminStatus'])
+            ->name('settings.admins.status');
         Route::inertia('audit-logs', 'admin/coming-soon', ['title' => 'Audit logs'])->name('audit-logs.index');
     });
 

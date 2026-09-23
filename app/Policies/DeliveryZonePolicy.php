@@ -17,13 +17,23 @@ class DeliveryZonePolicy extends Policy
         return true;
     }
 
+    public function create(User $user): bool
+    {
+        return $user->isAdmin();
+    }
+
     public function update(User $user, DeliveryZone $deliveryZone): bool
     {
-        return false;
+        return $user->isAdmin();
+    }
+
+    public function toggle(User $user, DeliveryZone $deliveryZone): bool
+    {
+        return $user->isAdmin();
     }
 
     public function delete(User $user, DeliveryZone $deliveryZone): bool
     {
-        return false;
+        return $user->isAdmin();
     }
 }
