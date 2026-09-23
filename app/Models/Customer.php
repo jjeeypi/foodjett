@@ -52,4 +52,10 @@ class Customer extends Model
     {
         return $this->hasMany(VoucherRedemption::class);
     }
+
+    /** @return HasMany<PendingCheckout, $this> */
+    public function pendingCheckouts(): HasMany
+    {
+        return $this->hasMany(PendingCheckout::class);
+    }
 }

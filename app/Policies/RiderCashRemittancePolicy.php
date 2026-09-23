@@ -27,6 +27,11 @@ class RiderCashRemittancePolicy extends Policy
         return false;
     }
 
+    public function confirm(User $user, RiderCashRemittance $remittance): bool
+    {
+        return $user->isAdmin() && $remittance->status === 'pending';
+    }
+
     public function delete(User $user, RiderCashRemittance $remittance): bool
     {
         return false;

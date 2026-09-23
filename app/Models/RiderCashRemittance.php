@@ -13,7 +13,7 @@ class RiderCashRemittance extends Model
     use HasFactory;
 
     protected $fillable = [
-        'rider_id', 'amount', 'status', 'confirmed_by_admin_id', 'remitted_at',
+        'rider_id', 'amount', 'reference_note', 'status', 'confirmed_by_admin_id', 'remitted_at',
     ];
 
     protected function casts(): array

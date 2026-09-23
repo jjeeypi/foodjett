@@ -39,7 +39,8 @@ class OrderPolicy extends Policy
         }
 
         if ($order->rider_id === null) {
-            return $order->status === 'finding_rider';
+            return $order->status === 'finding_rider'
+                && ($order->payment_method !== 'cod' || $user->rider?->canAcceptCodOrders() === true);
         }
 
         return $order->rider_id === $user->rider?->id;

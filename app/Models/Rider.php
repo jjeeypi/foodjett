@@ -79,4 +79,9 @@ class Rider extends Model
     {
         return $this->hasMany(RiderPoolDecline::class);
     }
+
+    public function canAcceptCodOrders(): bool
+    {
+        return (float) $this->cash_on_hand < (float) $this->cash_remit_limit;
+    }
 }
