@@ -22,6 +22,16 @@ class RestaurantPayoutPolicy extends Policy
         return false;
     }
 
+    public function generate(User $user): bool
+    {
+        return $user->isAdmin();
+    }
+
+    public function markPaid(User $user, RestaurantPayout $payout): bool
+    {
+        return $user->isAdmin();
+    }
+
     public function delete(User $user, RestaurantPayout $payout): bool
     {
         return false;

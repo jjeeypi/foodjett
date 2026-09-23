@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\FinanceController as AdminFinanceController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Admin\RestaurantController as AdminRestaurantController;
 use App\Http\Controllers\Admin\RiderController as AdminRiderController;
@@ -94,12 +95,25 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('remittances/{remittance}/confirm', [AdminRemittanceController::class, 'confirm'])
             ->name('remittances.confirm');
 
+        Route::get('transactions', [AdminFinanceController::class, 'transactions'])->name('transactions.index');
+        Route::patch('transactions/{payment}/refund', [AdminFinanceController::class, 'refundPayment'])
+            ->name('transactions.refund');
+        Route::get('payouts/restaurants', [AdminFinanceController::class, 'restaurantPayouts'])
+            ->name('payouts.restaurants');
+        Route::post('payouts/restaurants/generate', [AdminFinanceController::class, 'generateRestaurantPayouts'])
+            ->name('payouts.restaurants.generate');
+        Route::patch('payouts/restaurants/{payout}/paid', [AdminFinanceController::class, 'markRestaurantPayoutPaid'])
+            ->name('payouts.restaurants.paid');
+        Route::get('payouts/riders', [AdminFinanceController::class, 'riderPayouts'])
+            ->name('payouts.riders');
+        Route::post('payouts/riders/generate', [AdminFinanceController::class, 'generateRiderPayouts'])
+            ->name('payouts.riders.generate');
+        Route::patch('payouts/riders/{payout}/paid', [AdminFinanceController::class, 'markRiderPayoutPaid'])
+            ->name('payouts.riders.paid');
+
         Route::inertia('customers', 'admin/coming-soon', ['title' => 'Customers'])->name('customers.index');
         Route::inertia('categories', 'admin/coming-soon', ['title' => 'Categories'])->name('categories.index');
         Route::inertia('promotions', 'admin/coming-soon', ['title' => 'Promotions'])->name('promotions.index');
-        Route::inertia('transactions', 'admin/coming-soon', ['title' => 'Transactions'])->name('transactions.index');
-        Route::inertia('payouts/restaurants', 'admin/coming-soon', ['title' => 'Restaurant payouts'])->name('payouts.restaurants');
-        Route::inertia('payouts/riders', 'admin/coming-soon', ['title' => 'Rider payouts'])->name('payouts.riders');
         Route::inertia('reviews', 'admin/coming-soon', ['title' => 'Reviews'])->name('reviews.index');
         Route::inertia('settings/platform', 'admin/coming-soon', ['title' => 'Platform settings'])->name('settings.platform');
         Route::inertia('settings/delivery-zones', 'admin/coming-soon', ['title' => 'Delivery zones'])->name('settings.delivery-zones');

@@ -22,6 +22,16 @@ class RiderPayoutPolicy extends Policy
         return false;
     }
 
+    public function generate(User $user): bool
+    {
+        return $user->isAdmin();
+    }
+
+    public function markPaid(User $user, RiderPayout $payout): bool
+    {
+        return $user->isAdmin();
+    }
+
     public function delete(User $user, RiderPayout $payout): bool
     {
         return false;

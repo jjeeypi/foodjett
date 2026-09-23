@@ -5,7 +5,8 @@ import DataTable, {
     type DataTableColumn,
     type PaginatedData,
 } from '@/components/admin/data-table';
-import { Badge } from '@/components/ui/badge';
+import FinanceNav from '@/components/admin/finance-nav';
+import FinanceStatusBadge from '@/components/admin/finance-status-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -42,7 +43,7 @@ const currency = new Intl.NumberFormat('en-PH', {
     currency: 'PHP',
 });
 
-export default function AdminRemittances({ remittances, filters }: Props) {
+export default function CashRemittances({ remittances, filters }: Props) {
     const [search, setSearch] = useState(filters.search);
     const [status, setStatus] = useState(filters.status);
     const [confirmingId, setConfirmingId] = useState<number | null>(null);
@@ -64,14 +65,12 @@ export default function AdminRemittances({ remittances, filters }: Props) {
     useEffect(() => {
         if (isFirstSearchRender.current) {
             isFirstSearchRender.current = false;
-
             return;
         }
 
         const timeout = window.setTimeout(() => visit(search, status), 350);
-
         return () => window.clearTimeout(timeout);
-        // The status filter is submitted immediately by its change handler.
+        // Status is submitted immediately by its change handler.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [search]);
 
@@ -91,20 +90,15 @@ export default function AdminRemittances({ remittances, filters }: Props) {
         {
             key: 'amount',
             label: 'Amount',
-            render: (remittance) => (
-                <span className="font-medium tabular-nums">
-                    {currency.format(Number(remittance.amount))}
-                </span>
-            ),
+            className: 'text-right font-medium tabular-nums',
+            render: (remittance) => currency.format(Number(remittance.amount)),
         },
         {
             key: 'cash',
-            label: 'Cash on hand',
-            render: (remittance) => (
-                <span className="tabular-nums">
-                    {currency.format(Number(remittance.rider.cash_on_hand))}
-                </span>
-            ),
+            label: 'Current cash on hand',
+            className: 'text-right tabular-nums',
+            render: (remittance) =>
+                currency.format(Number(remittance.rider.cash_on_hand)),
         },
         {
             key: 'reference',
@@ -115,22 +109,20 @@ export default function AdminRemittances({ remittances, filters }: Props) {
             key: 'submitted',
             label: 'Submitted',
             render: (remittance) =>
-                new Date(remittance.created_at).toLocaleDateString(),
+                new Date(remittance.created_at).toLocaleString(),
         },
         {
             key: 'status',
             label: 'Status',
             render: (remittance) => (
-                <Badge
-                    variant="outline"
-                    className={
-                        remittance.status === 'confirmed'
-                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300'
-                            : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300'
-                    }
-                >
-                    {remittance.status}
-                </Badge>
+                <div>
+                    <FinanceStatusBadge status={remittance.status} />
+                    {remittance.remitted_at && (
+                        <p className="text-muted-foreground mt-1 text-xs">
+                            {new Date(remittance.remitted_at).toLocaleString()}
+                        </p>
+                    )}
+                </div>
             ),
         },
         {
@@ -158,15 +150,7 @@ export default function AdminRemittances({ remittances, filters }: Props) {
                             ? 'Confirming…'
                             : 'Confirm'}
                     </Button>
-                ) : (
-                    <span className="text-muted-foreground text-xs">
-                        {remittance.remitted_at
-                            ? new Date(
-                                  remittance.remitted_at,
-                              ).toLocaleDateString()
-                            : 'Confirmed'}
-                    </span>
-                ),
+                ) : null,
         },
     ];
 
@@ -174,17 +158,19 @@ export default function AdminRemittances({ remittances, filters }: Props) {
         <>
             <Head title="Cash remittances" />
             <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+                <FinanceNav />
+
                 <div>
                     <h2 className="text-2xl font-semibold tracking-tight">
                         Cash remittances
                     </h2>
                     <p className="text-muted-foreground text-sm">
-                        Confirm only after matching the rider’s deposit or cash
+                        Confirm only after matching the rider's deposit or cash
                         handover.
                     </p>
                 </div>
 
-                <div className="flex flex-col gap-3 sm:flex-row">
+                <div className="flex flex-col gap-3 rounded-xl border p-4 sm:flex-row">
                     <div className="relative flex-1 sm:max-w-md">
                         <Search className="text-muted-foreground pointer-events-none absolute top-2.5 left-3 size-4" />
                         <Input
@@ -223,6 +209,4 @@ export default function AdminRemittances({ remittances, filters }: Props) {
     );
 }
 
-AdminRemittances.layout = {
-    title: 'Cash remittances',
-};
+CashRemittances.layout = { title: 'Cash remittances' };

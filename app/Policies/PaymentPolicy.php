@@ -22,6 +22,11 @@ class PaymentPolicy extends Policy
         return false;
     }
 
+    public function refund(User $user, Payment $payment): bool
+    {
+        return $user->isAdmin();
+    }
+
     public function delete(User $user, Payment $payment): bool
     {
         return false;

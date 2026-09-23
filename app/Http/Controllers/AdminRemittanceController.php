@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use App\Models\Rider;
 use App\Models\RiderCashRemittance;
 use Illuminate\Database\Eloquent\Builder;
@@ -26,7 +27,7 @@ class AdminRemittanceController extends Controller
         ]);
         $status = $filters['status'] ?? 'pending';
 
-        return Inertia::render('admin/remittances', [
+        return Inertia::render('admin/finance/cash-remittances', [
             'remittances' => RiderCashRemittance::query()
                 ->with(['rider.user:id,name,email'])
                 ->when(
@@ -59,26 +60,51 @@ class AdminRemittanceController extends Controller
         abort_unless($adminId !== null, 403);
 
         DB::transaction(function () use ($remittance, $adminId): void {
-            $lockedRemittance = RiderCashRemittance::query()->lockForUpdate()->findOrFail($remittance->id);
+            $lockedRemittance = RiderCashRemittance::query()
+                ->whereKey($remittance->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
             if ($lockedRemittance->status === 'confirmed') {
                 return;
             }
 
-            $rider = Rider::query()->lockForUpdate()->findOrFail($lockedRemittance->rider_id);
+            $rider = Rider::query()
+                ->whereKey($lockedRemittance->rider_id)
+                ->lockForUpdate()
+                ->firstOrFail();
             if ((float) $lockedRemittance->amount > (float) $rider->cash_on_hand) {
                 throw ValidationException::withMessages([
-                    'remittance' => 'The rider’s cash balance is lower than this remittance amount.',
+                    'remittance' => "The rider's cash balance is lower than this remittance amount.",
                 ]);
             }
 
+            $before = [
+                ...$lockedRemittance->only(['status', 'confirmed_by_admin_id', 'remitted_at']),
+                'rider_cash_on_hand' => $rider->cash_on_hand,
+            ];
             $lockedRemittance->update([
                 'status' => 'confirmed',
                 'confirmed_by_admin_id' => $adminId,
-                'remitted_at' => now(),
+                'remitted_at' => $lockedRemittance->remitted_at ?? now(),
             ]);
             $rider->update([
                 'cash_on_hand' => round((float) $rider->cash_on_hand - (float) $lockedRemittance->amount, 2),
+            ]);
+
+            AuditLog::query()->create([
+                'user_id' => request()->user()?->id,
+                'action' => 'rider_remittance.confirmed',
+                'subject_type' => RiderCashRemittance::class,
+                'subject_id' => $lockedRemittance->id,
+                'changes' => [
+                    'before' => $before,
+                    'after' => [
+                        ...$lockedRemittance->fresh()->only(['status', 'confirmed_by_admin_id', 'remitted_at']),
+                        'rider_cash_on_hand' => $rider->fresh()->cash_on_hand,
+                    ],
+                ],
+                'created_at' => now(),
             ]);
         });
 

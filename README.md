@@ -57,10 +57,13 @@ Currently functional:
 - Escalated unassigned-order queue with 20-second polling and distance-sorted manual rider assignment.
 - Order cancellation, internal refund recording, and auditable administrator actions.
 - Paginated dispute reports with resolve/reject decisions and administrator attribution.
+- Paginated transaction ledger with payment/date filters and cumulative partial or full refunds.
+- Restaurant payout generation from delivered food sales, with commission deductions and overlap protection.
+- Rider payout generation from delivered-order earnings, with paid-state tracking.
 - Paginated and searchable rider cash remittances.
-- Audit entries for restaurant and rider moderation actions.
+- Audit entries for moderation, refunds, payout generation/payment, and cash-remittance confirmation.
 
-The sidebar also establishes routes and placeholder pages for customers, categories, promotions, transactions, payouts, reviews, platform settings, delivery zones, administrators, and audit logs. Those modules do not yet contain their final business features.
+The sidebar also establishes routes and placeholder pages for customers, categories, promotions, reviews, platform settings, delivery zones, administrators, and audit logs. Those modules do not yet contain their final business features.
 
 ## Application routes
 
@@ -276,6 +279,11 @@ tests/Feature/
 - Nearby-rider ordering uses straight-line Haversine distance from the restaurant, not road distance or ETA.
 - Administrator refunds currently update FoodJett's payment ledger and status history only; PayMongo API refunds still need a gateway-specific integration and reconciliation flow.
 - Administrator cancellation does not automatically refund a paid order or notify participants; those workflows should be added once notification and refund policy are defined.
+- Transaction date filters use `payments.paid_at`; pending payments without a paid timestamp are omitted when a date range is active.
+- Restaurant payout gross sales are the sum of delivered-order food subtotals. Delivery fees, service fees, and tips are excluded; stored `commission_amount` values are deducted to calculate net payouts.
+- Rider payout periods use each earning's related order `delivered_at` timestamp. Payout cadence is administrator-selected rather than fixed to weekly or biweekly.
+- Overlapping payout periods for the same restaurant or rider are skipped to avoid paying the same work twice.
+- Marking a payout paid does not yet initiate a bank/e-wallet transfer or notify its recipient.
 - Most remaining admin navigation modules are placeholders; only the modules listed as functional above should be treated as complete.
 
 ## License
