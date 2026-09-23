@@ -13,6 +13,30 @@ jobs:
   ci:
     runs-on: ubuntu-latest
 
+    services:
+      mariadb:
+        image: mariadb:10.4.32
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: laravel
+          MARIADB_USER: laravel
+          MARIADB_PASSWORD: password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --host=127.0.0.1 --user=root --password=root"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      DB_CONNECTION: mariadb
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: laravel
+      DB_USERNAME: laravel
+      DB_PASSWORD: password
+
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
