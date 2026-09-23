@@ -22,7 +22,7 @@ class RestaurantDocumentFactory extends Factory
             'restaurant_id' => Restaurant::factory(),
             'type' => $type,
             'file_path' => 'documents/restaurants/'.$type.'_'.$this->faker->uuid().'.jpg',
-            'status' => $this->faker->randomElement(['pending', 'approved', 'approved']),
+            'status' => $this->faker->randomElement(['pending', 'verified', 'verified']),
         ];
     }
 }

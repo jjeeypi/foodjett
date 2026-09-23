@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\RestaurantController as AdminRestaurantController;
 use App\Http\Controllers\AdminRemittanceController;
 use App\Http\Controllers\Auth\RegisteredRestaurantController;
 use App\Http\Controllers\Auth\RegisteredRiderController;
@@ -37,10 +39,37 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardRedirectController::class)->name('dashboard');
 
     Route::prefix('admin')->name('admin.')->middleware('role:admin')->group(function () {
-        Route::inertia('dashboard', 'admin/dashboard')->name('dashboard');
+        Route::get('dashboard', AdminDashboardController::class)->name('dashboard');
+        Route::get('restaurants', [AdminRestaurantController::class, 'index'])->name('restaurants.index');
+        Route::get('restaurants/pending', [AdminRestaurantController::class, 'pending'])->name('restaurants.pending');
+        Route::get('restaurants/{restaurant}', [AdminRestaurantController::class, 'show'])->name('restaurants.show');
+        Route::patch('restaurants/{restaurant}/approve', [AdminRestaurantController::class, 'approve'])
+            ->name('restaurants.approve');
+        Route::patch('restaurants/{restaurant}/reject', [AdminRestaurantController::class, 'reject'])
+            ->name('restaurants.reject');
+        Route::patch('restaurants/{restaurant}/suspension', [AdminRestaurantController::class, 'suspend'])
+            ->name('restaurants.suspension');
+
         Route::get('remittances', [AdminRemittanceController::class, 'index'])->name('remittances.index');
         Route::patch('remittances/{remittance}/confirm', [AdminRemittanceController::class, 'confirm'])
             ->name('remittances.confirm');
+
+        Route::inertia('riders', 'admin/coming-soon', ['title' => 'Riders'])->name('riders.index');
+        Route::inertia('riders/pending', 'admin/coming-soon', ['title' => 'Pending rider approvals'])->name('riders.pending');
+        Route::inertia('customers', 'admin/coming-soon', ['title' => 'Customers'])->name('customers.index');
+        Route::inertia('orders', 'admin/coming-soon', ['title' => 'Orders'])->name('orders.index');
+        Route::inertia('orders/unassigned', 'admin/coming-soon', ['title' => 'Unassigned orders'])->name('orders.unassigned');
+        Route::inertia('orders/reports', 'admin/coming-soon', ['title' => 'Order reports'])->name('orders.reports');
+        Route::inertia('categories', 'admin/coming-soon', ['title' => 'Categories'])->name('categories.index');
+        Route::inertia('promotions', 'admin/coming-soon', ['title' => 'Promotions'])->name('promotions.index');
+        Route::inertia('transactions', 'admin/coming-soon', ['title' => 'Transactions'])->name('transactions.index');
+        Route::inertia('payouts/restaurants', 'admin/coming-soon', ['title' => 'Restaurant payouts'])->name('payouts.restaurants');
+        Route::inertia('payouts/riders', 'admin/coming-soon', ['title' => 'Rider payouts'])->name('payouts.riders');
+        Route::inertia('reviews', 'admin/coming-soon', ['title' => 'Reviews'])->name('reviews.index');
+        Route::inertia('settings/platform', 'admin/coming-soon', ['title' => 'Platform settings'])->name('settings.platform');
+        Route::inertia('settings/delivery-zones', 'admin/coming-soon', ['title' => 'Delivery zones'])->name('settings.delivery-zones');
+        Route::inertia('settings/admins', 'admin/coming-soon', ['title' => 'Administrators'])->name('settings.admins');
+        Route::inertia('audit-logs', 'admin/coming-soon', ['title' => 'Audit logs'])->name('audit-logs.index');
     });
 
     Route::prefix('restaurant')->name('restaurant.')->middleware('role:restaurant')->group(function () {

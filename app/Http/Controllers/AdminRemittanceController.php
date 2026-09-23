@@ -4,25 +4,51 @@ namespace App\Http\Controllers;
 
 use App\Models\Rider;
 use App\Models\RiderCashRemittance;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class AdminRemittanceController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
         Gate::authorize('viewAny', RiderCashRemittance::class);
+
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+            'status' => ['nullable', Rule::in(['pending', 'confirmed', 'all'])],
+        ]);
+        $status = $filters['status'] ?? 'pending';
 
         return Inertia::render('admin/remittances', [
             'remittances' => RiderCashRemittance::query()
                 ->with(['rider.user:id,name,email'])
-                ->where('status', 'pending')
+                ->when(
+                    $status !== 'all',
+                    fn (Builder $query) => $query->where('status', $status)
+                )
+                ->when(
+                    $filters['search'] ?? null,
+                    fn (Builder $query, string $search) => $query->whereHas(
+                        'rider.user',
+                        fn (Builder $userQuery) => $userQuery
+                            ->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%")
+                    )
+                )
                 ->oldest()
-                ->get(),
+                ->paginate(15)
+                ->withQueryString(),
+            'filters' => [
+                'search' => $filters['search'] ?? '',
+                'status' => $status,
+            ],
         ]);
     }
 

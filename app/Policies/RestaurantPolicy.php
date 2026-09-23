@@ -31,4 +31,19 @@ class RestaurantPolicy extends Policy
     {
         return $restaurant->user_id === $user->id;
     }
+
+    public function approve(User $user, Restaurant $restaurant): bool
+    {
+        return $user->isAdmin();
+    }
+
+    public function reject(User $user, Restaurant $restaurant): bool
+    {
+        return $user->isAdmin();
+    }
+
+    public function suspend(User $user, Restaurant $restaurant): bool
+    {
+        return $user->isAdmin();
+    }
 }

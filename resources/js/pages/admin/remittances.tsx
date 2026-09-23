@@ -1,88 +1,228 @@
 import { Head, router } from '@inertiajs/react';
+import { Search } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import DataTable, {
+    type DataTableColumn,
+    type PaginatedData,
+} from '@/components/admin/data-table';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 
 type Remittance = {
     id: number;
     amount: string;
+    status: 'pending' | 'confirmed';
     reference_note: string | null;
     created_at: string;
+    remitted_at: string | null;
     rider: {
         cash_on_hand: string;
         user: { name: string; email: string };
     };
 };
 
-export default function AdminRemittances({
-    remittances,
-}: {
-    remittances: Remittance[];
-}) {
+type Props = {
+    remittances: PaginatedData<Remittance>;
+    filters: {
+        search: string;
+        status: 'pending' | 'confirmed' | 'all';
+    };
+};
+
+const currency = new Intl.NumberFormat('en-PH', {
+    style: 'currency',
+    currency: 'PHP',
+});
+
+export default function AdminRemittances({ remittances, filters }: Props) {
+    const [search, setSearch] = useState(filters.search);
+    const [status, setStatus] = useState(filters.status);
+    const [confirmingId, setConfirmingId] = useState<number | null>(null);
+    const isFirstSearchRender = useRef(true);
+
+    const visit = (nextSearch: string, nextStatus: string) => {
+        router.get(
+            '/admin/remittances',
+            { search: nextSearch || undefined, status: nextStatus },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                only: ['remittances', 'filters'],
+            },
+        );
+    };
+
+    useEffect(() => {
+        if (isFirstSearchRender.current) {
+            isFirstSearchRender.current = false;
+
+            return;
+        }
+
+        const timeout = window.setTimeout(() => visit(search, status), 350);
+
+        return () => window.clearTimeout(timeout);
+        // The status filter is submitted immediately by its change handler.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [search]);
+
+    const columns: DataTableColumn<Remittance>[] = [
+        {
+            key: 'rider',
+            label: 'Rider',
+            render: (remittance) => (
+                <div>
+                    <p className="font-medium">{remittance.rider.user.name}</p>
+                    <p className="text-muted-foreground text-xs">
+                        {remittance.rider.user.email}
+                    </p>
+                </div>
+            ),
+        },
+        {
+            key: 'amount',
+            label: 'Amount',
+            render: (remittance) => (
+                <span className="font-medium tabular-nums">
+                    {currency.format(Number(remittance.amount))}
+                </span>
+            ),
+        },
+        {
+            key: 'cash',
+            label: 'Cash on hand',
+            render: (remittance) => (
+                <span className="tabular-nums">
+                    {currency.format(Number(remittance.rider.cash_on_hand))}
+                </span>
+            ),
+        },
+        {
+            key: 'reference',
+            label: 'Reference note',
+            render: (remittance) => remittance.reference_note || '—',
+        },
+        {
+            key: 'submitted',
+            label: 'Submitted',
+            render: (remittance) =>
+                new Date(remittance.created_at).toLocaleDateString(),
+        },
+        {
+            key: 'status',
+            label: 'Status',
+            render: (remittance) => (
+                <Badge
+                    variant="outline"
+                    className={
+                        remittance.status === 'confirmed'
+                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300'
+                            : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300'
+                    }
+                >
+                    {remittance.status}
+                </Badge>
+            ),
+        },
+        {
+            key: 'actions',
+            label: '',
+            className: 'text-right',
+            render: (remittance) =>
+                remittance.status === 'pending' ? (
+                    <Button
+                        size="sm"
+                        disabled={confirmingId === remittance.id}
+                        onClick={() => {
+                            setConfirmingId(remittance.id);
+                            router.patch(
+                                `/admin/remittances/${remittance.id}/confirm`,
+                                {},
+                                {
+                                    preserveScroll: true,
+                                    onFinish: () => setConfirmingId(null),
+                                },
+                            );
+                        }}
+                    >
+                        {confirmingId === remittance.id
+                            ? 'Confirming…'
+                            : 'Confirm'}
+                    </Button>
+                ) : (
+                    <span className="text-muted-foreground text-xs">
+                        {remittance.remitted_at
+                            ? new Date(
+                                  remittance.remitted_at,
+                              ).toLocaleDateString()
+                            : 'Confirmed'}
+                    </span>
+                ),
+        },
+    ];
+
     return (
         <>
-            <Head title="Pending remittances" />
+            <Head title="Cash remittances" />
             <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
                 <div>
-                    <h1 className="text-2xl font-semibold tracking-tight">
-                        Pending remittances
-                    </h1>
+                    <h2 className="text-2xl font-semibold tracking-tight">
+                        Cash remittances
+                    </h2>
                     <p className="text-muted-foreground text-sm">
                         Confirm only after matching the rider’s deposit or cash
                         handover.
                     </p>
                 </div>
 
-                <div className="grid gap-4 lg:grid-cols-2">
-                    {remittances.map((remittance) => (
-                        <Card key={remittance.id}>
-                            <CardHeader>
-                                <CardTitle>
-                                    {remittance.rider.user.name}
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-3 text-sm">
-                                <div className="flex justify-between">
-                                    <span>Amount</span>
-                                    <strong>
-                                        ₱{Number(remittance.amount).toFixed(2)}
-                                    </strong>
-                                </div>
-                                <div className="flex justify-between gap-4">
-                                    <span>Rider cash balance</span>
-                                    <span>
-                                        ₱
-                                        {Number(
-                                            remittance.rider.cash_on_hand,
-                                        ).toFixed(2)}
-                                    </span>
-                                </div>
-                                <p className="text-muted-foreground">
-                                    {remittance.reference_note ||
-                                        'No reference note provided.'}
-                                </p>
-                                <Button
-                                    className="w-full"
-                                    onClick={() =>
-                                        router.patch(
-                                            `/admin/remittances/${remittance.id}/confirm`,
-                                        )
-                                    }
-                                >
-                                    Confirm remittance
-                                </Button>
-                            </CardContent>
-                        </Card>
-                    ))}
+                <div className="flex flex-col gap-3 sm:flex-row">
+                    <div className="relative flex-1 sm:max-w-md">
+                        <Search className="text-muted-foreground pointer-events-none absolute top-2.5 left-3 size-4" />
+                        <Input
+                            value={search}
+                            onChange={(event) => setSearch(event.target.value)}
+                            placeholder="Search rider name or email…"
+                            className="pl-9"
+                        />
+                    </div>
+                    <Select
+                        value={status}
+                        onValueChange={(value: Props['filters']['status']) => {
+                            setStatus(value);
+                            visit(search, value);
+                        }}
+                    >
+                        <SelectTrigger className="w-full sm:w-44">
+                            <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="confirmed">Confirmed</SelectItem>
+                            <SelectItem value="all">All statuses</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
 
-                {remittances.length === 0 && (
-                    <Card>
-                        <CardContent className="text-muted-foreground pt-6 text-sm">
-                            There are no pending remittances.
-                        </CardContent>
-                    </Card>
-                )}
+                <DataTable
+                    columns={columns}
+                    paginated={remittances}
+                    rowKey={(remittance) => remittance.id}
+                    emptyMessage="No remittances match these filters."
+                />
             </div>
         </>
     );
 }
+
+AdminRemittances.layout = {
+    title: 'Cash remittances',
+};
