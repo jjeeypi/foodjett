@@ -4,6 +4,7 @@ namespace App\Actions\Orders;
 
 use App\Actions\Payments\RecordPaymentStatus;
 use App\Data\OrderCheckoutData;
+use App\Events\OrderPlaced;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderItemAddon;
@@ -21,7 +22,7 @@ class CreateOrderFromCart
         string $paymentStatus,
         ?string $transactionReference = null,
     ): Order {
-        return DB::transaction(function () use ($checkout, $paymentStatus, $transactionReference): Order {
+        $order = DB::transaction(function () use ($checkout, $paymentStatus, $transactionReference): Order {
             $order = Order::create([
                 'order_number' => 'FJ-'.now()->format('Ymd').'-'.Str::upper(Str::random(8)),
                 'customer_id' => $checkout->customerId,
@@ -85,5 +86,9 @@ class CreateOrderFromCart
 
             return $order->load(['payment', 'items.addons']);
         });
+
+        OrderPlaced::dispatch($order);
+
+        return $order;
     }
 }

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Payments;
 
+use App\Events\OrderPlaced;
 use App\Models\Customer;
 use App\Models\CustomerAddress;
 use App\Models\MenuCategory;
@@ -10,6 +11,7 @@ use App\Models\Order;
 use App\Models\PendingCheckout;
 use App\Models\Restaurant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\URL;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -32,6 +34,7 @@ class CheckoutPaymentTest extends TestCase
 
     public function test_cod_checkout_creates_order_and_pending_payment_immediately(): void
     {
+        Event::fake([OrderPlaced::class]);
         [$customer, $address, $restaurant, $menuItem] = $this->checkoutFixtures();
 
         $response = $this->actingAs($customer->user)->post(
@@ -53,10 +56,15 @@ class CheckoutPaymentTest extends TestCase
             'from_status' => null,
             'to_status' => 'pending',
         ]);
+        Event::assertDispatched(OrderPlaced::class, fn (OrderPlaced $event): bool => $event->id === $order->id
+            && $event->restaurant_id === $restaurant->id
+            && $event->customer_name === $customer->user->name
+            && $event->total_amount === '260.00');
     }
 
     public function test_online_checkout_creates_no_order_until_paymongo_verifies_a_paid_payment(): void
     {
+        Event::fake([OrderPlaced::class]);
         [$customer, $address, $restaurant, $menuItem] = $this->checkoutFixtures();
 
         Http::fake([
@@ -78,6 +86,7 @@ class CheckoutPaymentTest extends TestCase
             ->assertStatus(409)
             ->assertHeader('X-Inertia-Location', 'https://checkout.paymongo.com/cs_paid_checkout');
         $this->assertDatabaseCount('orders', 0);
+        Event::assertNotDispatched(OrderPlaced::class);
         $pendingCheckout = PendingCheckout::query()->sole();
 
         Http::fake([
@@ -119,10 +128,12 @@ class CheckoutPaymentTest extends TestCase
             'transaction_reference' => 'pay_verified_123',
         ]);
         $this->assertSame('paid', $pendingCheckout->refresh()->status);
+        Event::assertDispatchedTimes(OrderPlaced::class, 1);
     }
 
     public function test_unpaid_paymongo_callback_does_not_create_an_order(): void
     {
+        Event::fake([OrderPlaced::class]);
         [$customer, $address, $restaurant, $menuItem] = $this->checkoutFixtures();
 
         Http::fake([
@@ -170,10 +181,12 @@ class CheckoutPaymentTest extends TestCase
         $this->assertDatabaseCount('orders', 0);
         $this->assertDatabaseCount('payments', 0);
         $this->assertSame('cancelled', $pendingCheckout->refresh()->status);
+        Event::assertNotDispatched(OrderPlaced::class);
     }
 
     public function test_signed_paymongo_webhook_fulfills_checkout_idempotently(): void
     {
+        Event::fake([OrderPlaced::class]);
         [$customer, $address, $restaurant, $menuItem] = $this->checkoutFixtures();
 
         Http::fake([
@@ -228,6 +241,7 @@ class CheckoutPaymentTest extends TestCase
             'status' => 'paid',
             'transaction_reference' => 'pay_webhook_123',
         ]);
+        Event::assertDispatchedTimes(OrderPlaced::class, 1);
     }
 
     /** @return array{Customer, CustomerAddress, Restaurant, MenuItem} */

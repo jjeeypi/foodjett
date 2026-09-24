@@ -12,6 +12,7 @@ FoodJett is a multi-role food ordering and delivery platform built with Laravel,
 | Authentication | Laravel Fortify, email verification, 2FA, passkeys            |
 | Database       | MariaDB/MySQL for the application; SQLite in-memory for tests |
 | Payments       | PayMongo hosted checkout for GCash/card; internal COD flow    |
+| Real-time      | Laravel Reverb, Echo, and the Pusher WebSocket protocol       |
 | Quality        | PHPUnit, PHPStan/Larastan, Pint, Vite Plus checks             |
 
 ## Implemented features
@@ -48,6 +49,7 @@ FoodJett is a multi-role food ordering and delivery platform built with Laravel,
 - Category creation, renaming, deletion protection, and button-based reordering.
 - All menu routes require an approved restaurant and enforce record ownership server-side.
 - Items referenced by order history are retained and marked unavailable instead of being deleted.
+- New orders appear on the restaurant dashboard in real time with a banner, toast, and notification chime.
 
 ### Admin panel
 
@@ -211,11 +213,47 @@ DEFAULT_DELIVERY_FEE=50
 DEFAULT_SERVICE_FEE=10
 ```
 
+## Real-time order alerts
+
+Restaurant order alerts use Laravel Reverb on a private, restaurant-scoped channel. Add these values to `.env` (use unique app credentials outside local development):
+
+```env
+BROADCAST_CONNECTION=reverb
+QUEUE_CONNECTION=sync
+
+REVERB_APP_ID=foodjett-local
+REVERB_APP_KEY=foodjett-local-key
+REVERB_APP_SECRET=change-me
+REVERB_HOST=127.0.0.1
+REVERB_PORT=8080
+REVERB_SCHEME=http
+
+VITE_REVERB_APP_KEY="${REVERB_APP_KEY}"
+VITE_REVERB_HOST="${REVERB_HOST}"
+VITE_REVERB_PORT="${REVERB_PORT}"
+VITE_REVERB_SCHEME="${REVERB_SCHEME}"
+```
+
+For local development, keep the normal application processes running and start Reverb in another terminal:
+
+```bash
+# Terminal 1: Laravel, Vite, and the other normal dev processes
+composer dev
+
+# Terminal 2: WebSocket server
+php artisan reverb:start
+```
+
+If Laravel and Vite are started separately, run `php artisan serve`, `npm run dev`, and `php artisan reverb:start` in three terminals. `QUEUE_CONNECTION=sync` means no separate queue worker is required for broadcasts.
+
 ## Development commands
 
 ```bash
-# Start Laravel, the queue worker, logs, and Vite
+# Start the normal Laravel development processes
 composer dev
+
+# Start the Reverb WebSocket server in another terminal
+php artisan reverb:start
 
 # Build production frontend assets
 npm run build
@@ -310,6 +348,7 @@ tests/Feature/
 - Scheduled item availability permits an end time earlier than its start time so overnight schedules can be represented. Automatic enforcement of those times during checkout still needs to be added.
 - Variants and add-ons referenced by order history cannot be removed. Items with order history are marked sold out instead of hard-deleted, and categories containing items cannot be deleted.
 - Restaurant order handling, profile/hours, documents, promotions, earnings, payouts, and reviews are linked from the new layout but remain placeholder pages for later stages.
+- The new-order notification uses a generated two-tone Web Audio chime instead of a bundled audio file. Browsers may suppress it until the restaurant user has interacted with the page once.
 - Most remaining admin navigation modules are placeholders; only the modules listed as functional above should be treated as complete.
 
 ## License

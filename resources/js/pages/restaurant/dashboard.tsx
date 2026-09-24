@@ -1,10 +1,20 @@
-import { Head, Link } from '@inertiajs/react';
-import { Clock3, PhilippinePeso, ShoppingBag, Timer } from 'lucide-react';
+import { Head, Link, usePage } from '@inertiajs/react';
+import { useConnectionStatus, useEcho } from '@laravel/echo-react';
+import {
+    BellRing,
+    Clock3,
+    PhilippinePeso,
+    ShoppingBag,
+    Timer,
+} from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import OrderStatusBadge, {
     type OrderStatus,
 } from '@/components/admin/order-status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { playNewOrderSound } from '@/lib/notification-sound';
 import type { LucideIcon } from 'lucide-react';
 
 type Stats = {
@@ -23,10 +33,19 @@ type RecentOrder = {
     order_number: string;
     status: OrderStatus;
     total_amount: string;
-    payment_method: 'cod' | 'gcash' | 'card';
+    payment_method?: 'cod' | 'gcash' | 'card';
     placed_at: string;
-    items_count: number;
+    items_count: number | null;
     customer: { user: { name: string } } | null;
+};
+
+type OrderPlacedPayload = {
+    id: number;
+    order_number: string;
+    restaurant_id: number;
+    customer_name: string;
+    total_amount: string;
+    placed_at: string;
 };
 
 const currency = new Intl.NumberFormat('en-PH', {
@@ -74,14 +93,84 @@ export default function RestaurantDashboard({
     stats: Stats;
     recentOrders: RecentOrder[];
 }) {
+    const restaurantId = usePage().props.restaurantContext?.id ?? 0;
+    const connectionStatus = useConnectionStatus();
+    const [dashboardStats, setDashboardStats] = useState(stats);
+    const [visibleOrders, setVisibleOrders] = useState(recentOrders);
+    const [latestOrder, setLatestOrder] = useState<OrderPlacedPayload | null>(
+        null,
+    );
+    const knownOrderIds = useRef(
+        new Set(recentOrders.map((order) => order.id)),
+    );
+    const alertTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEcho<OrderPlacedPayload>(
+        `restaurant.${restaurantId}.orders`,
+        '.order.placed',
+        (order) => {
+            if (
+                order.restaurant_id !== restaurantId ||
+                knownOrderIds.current.has(order.id)
+            ) {
+                return;
+            }
+
+            knownOrderIds.current.add(order.id);
+            const realtimeOrder: RecentOrder = {
+                id: order.id,
+                order_number: order.order_number,
+                status: 'placed',
+                total_amount: order.total_amount,
+                placed_at: order.placed_at,
+                items_count: null,
+                customer: { user: { name: order.customer_name } },
+            };
+
+            setVisibleOrders((current) =>
+                [realtimeOrder, ...current].slice(0, 8),
+            );
+            setDashboardStats((current) => ({
+                ...current,
+                orders_today:
+                    new Date(order.placed_at).toDateString() ===
+                    new Date().toDateString()
+                        ? current.orders_today + 1
+                        : current.orders_today,
+                pending_orders: current.pending_orders + 1,
+            }));
+            setLatestOrder(order);
+            toast.success(`New order ${order.order_number}!`, {
+                description: `${order.customer_name} · ${currency.format(Number(order.total_amount))}`,
+            });
+            void playNewOrderSound();
+
+            if (alertTimer.current !== null) {
+                clearTimeout(alertTimer.current);
+            }
+
+            alertTimer.current = setTimeout(() => setLatestOrder(null), 15000);
+        },
+        [restaurantId],
+    );
+
+    useEffect(
+        () => () => {
+            if (alertTimer.current !== null) {
+                clearTimeout(alertTimer.current);
+            }
+        },
+        [],
+    );
+
     const prepValue =
-        stats.prep_time.actual_minutes === null
-            ? `${stats.prep_time.estimated_minutes} min`
-            : `${stats.prep_time.actual_minutes} min`;
+        dashboardStats.prep_time.actual_minutes === null
+            ? `${dashboardStats.prep_time.estimated_minutes} min`
+            : `${dashboardStats.prep_time.actual_minutes} min`;
     const prepDetail =
-        stats.prep_time.actual_minutes === null
-            ? `Estimated; actual shown after 3 completed preparations`
-            : `Estimated ${stats.prep_time.estimated_minutes} min · ${stats.prep_time.sample_size} samples`;
+        dashboardStats.prep_time.actual_minutes === null
+            ? 'Estimated; actual shown after 3 completed preparations'
+            : `Estimated ${dashboardStats.prep_time.estimated_minutes} min · ${dashboardStats.prep_time.sample_size} samples`;
 
     return (
         <>
@@ -96,6 +185,18 @@ export default function RestaurantDashboard({
                             Today&apos;s orders, earnings, and kitchen
                             performance.
                         </p>
+                        <p className="text-muted-foreground mt-1 flex items-center gap-1.5 text-xs">
+                            <span
+                                className={`size-2 rounded-full ${
+                                    connectionStatus === 'connected'
+                                        ? 'bg-emerald-500'
+                                        : connectionStatus === 'failed'
+                                          ? 'bg-red-500'
+                                          : 'bg-amber-500'
+                                }`}
+                            />
+                            Live alerts: {connectionStatus}
+                        </p>
                     </div>
                     <Button asChild>
                         <Link href="/restaurant/orders/active">
@@ -104,20 +205,49 @@ export default function RestaurantDashboard({
                     </Button>
                 </div>
 
+                {latestOrder && (
+                    <div
+                        role="status"
+                        className="flex flex-col justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-950 sm:flex-row sm:items-center dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
+                    >
+                        <div className="flex items-start gap-3">
+                            <BellRing className="mt-0.5 size-5 shrink-0" />
+                            <div>
+                                <p className="font-semibold">
+                                    New order {latestOrder.order_number}!
+                                </p>
+                                <p className="text-sm opacity-80">
+                                    {latestOrder.customer_name} ·{' '}
+                                    {currency.format(
+                                        Number(latestOrder.total_amount),
+                                    )}
+                                </p>
+                            </div>
+                        </div>
+                        <Button asChild size="sm">
+                            <Link href="/restaurant/orders/active">
+                                Review order
+                            </Link>
+                        </Button>
+                    </div>
+                )}
+
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                     <StatCard
                         title="Orders today"
-                        value={stats.orders_today}
+                        value={dashboardStats.orders_today}
                         icon={ShoppingBag}
                     />
                     <StatCard
                         title="Revenue today"
-                        value={currency.format(Number(stats.revenue_today))}
+                        value={currency.format(
+                            Number(dashboardStats.revenue_today),
+                        )}
                         icon={PhilippinePeso}
                     />
                     <StatCard
                         title="Awaiting decision"
-                        value={stats.pending_orders}
+                        value={dashboardStats.pending_orders}
                         detail="Placed orders needing accept or reject"
                         icon={Clock3}
                     />
@@ -139,13 +269,13 @@ export default function RestaurantDashboard({
                         </Button>
                     </CardHeader>
                     <CardContent>
-                        {recentOrders.length === 0 ? (
+                        {visibleOrders.length === 0 ? (
                             <p className="text-muted-foreground py-8 text-center text-sm">
                                 No orders yet.
                             </p>
                         ) : (
                             <div className="divide-y">
-                                {recentOrders.map((order) => (
+                                {visibleOrders.map((order) => (
                                     <div
                                         key={order.id}
                                         className="flex flex-col justify-between gap-3 py-3 sm:flex-row sm:items-center"
@@ -157,10 +287,15 @@ export default function RestaurantDashboard({
                                             <p className="text-muted-foreground text-xs">
                                                 {order.customer?.user.name ??
                                                     'Customer'}{' '}
-                                                · {order.items_count}{' '}
-                                                {order.items_count === 1
-                                                    ? 'item'
-                                                    : 'items'}{' '}
+                                                ·{' '}
+                                                {order.items_count === null
+                                                    ? 'Just arrived'
+                                                    : `${order.items_count} ${
+                                                          order.items_count ===
+                                                          1
+                                                              ? 'item'
+                                                              : 'items'
+                                                      }`}{' '}
                                                 ·{' '}
                                                 {new Date(
                                                     order.placed_at,
