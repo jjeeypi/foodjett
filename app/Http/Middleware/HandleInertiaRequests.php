@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\Restaurant;
 use App\Models\Rider;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -49,6 +50,28 @@ class HandleInertiaRequests extends Middleware
                     'riders' => Rider::query()->where('approval_status', 'pending')->count(),
                 ]
                 : null,
+            'restaurantContext' => function () use ($request): ?array {
+                $user = $request->user();
+
+                if (! $user?->isRestaurant()) {
+                    return null;
+                }
+
+                $restaurant = $user->restaurant;
+                if ($restaurant === null) {
+                    return null;
+                }
+
+                return [
+                    'id' => $restaurant->id,
+                    'name' => $restaurant->name,
+                    'logo_url' => $restaurant->logo_path === null
+                        ? null
+                        : Storage::disk('public')->url($restaurant->logo_path),
+                    'operating_status' => $restaurant->operating_status,
+                    'approval_status' => $restaurant->approval_status,
+                ];
+            },
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

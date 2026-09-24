@@ -38,6 +38,17 @@ FoodJett is a multi-role food ordering and delivery platform built with Laravel,
 - Rider remittance requests and administrator confirmation are supported.
 - Payment status changes are recorded separately from order status history.
 
+### Restaurant workspace
+
+- Restaurant-specific sidebar and header with a live Open/Closed control.
+- Dashboard metrics for daily orders, net collected revenue, pending decisions, and preparation time.
+- Recent order summaries scoped to the authenticated restaurant.
+- Paginated and searchable menu-item management with inline sold-out toggles.
+- Menu-item photo uploads, scheduled availability, featured status, variants, and add-ons.
+- Category creation, renaming, deletion protection, and button-based reordering.
+- All menu routes require an approved restaurant and enforce record ownership server-side.
+- Items referenced by order history are retained and marked unavailable instead of being deleted.
+
 ### Admin panel
 
 The custom admin interface is implemented with Inertia React—no external admin package is used.
@@ -250,6 +261,7 @@ app/
 ├── Actions/Orders/             Shared order creation logic
 ├── Console/Commands/           Administrator creation command
 ├── Http/Controllers/Admin/     Admin dashboard, approvals, and order operations
+├── Http/Controllers/Restaurant/ Restaurant dashboard and menu management
 ├── Http/Middleware/            Role, approval, and active-account checks
 ├── Models/                     Marketplace domain models
 ├── Policies/                   Role and ownership authorization
@@ -292,6 +304,12 @@ tests/Feature/
 - Delivery zones are edited as center latitude/longitude plus radius and stored as circle JSON. Editing a legacy GeoJSON polygon converts its bounding area to an approximate circle.
 - Checkout/address validation against active delivery zones is not implemented yet. Zone changes therefore do not currently affect in-progress checkouts.
 - Creating or changing an administrator account does not send an automatic notification. Credentials and status changes must be communicated separately.
+- Restaurant revenue cards show payments recorded as paid today minus recorded refunds, rather than food subtotal or payout net.
+- Actual restaurant prep time appears after three completed preparation samples; before that, the estimated value is shown.
+- Menu photos accept JPEG, PNG, or WebP files up to 4 MB and are stored on the public disk.
+- Scheduled item availability permits an end time earlier than its start time so overnight schedules can be represented. Automatic enforcement of those times during checkout still needs to be added.
+- Variants and add-ons referenced by order history cannot be removed. Items with order history are marked sold out instead of hard-deleted, and categories containing items cannot be deleted.
+- Restaurant order handling, profile/hours, documents, promotions, earnings, payouts, and reviews are linked from the new layout but remain placeholder pages for later stages.
 - Most remaining admin navigation modules are placeholders; only the modules listed as functional above should be treated as complete.
 
 ## License

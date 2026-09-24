@@ -15,6 +15,13 @@ declare module '@inertiajs/core' {
                 restaurants: number;
                 riders: number;
             } | null;
+            restaurantContext: {
+                id: number;
+                name: string;
+                logo_url: string | null;
+                operating_status: 'open' | 'closed' | 'temporarily_closed';
+                approval_status: 'pending' | 'approved' | 'rejected';
+            } | null;
             sidebarOpen: boolean;
             [key: string]: unknown;
         };

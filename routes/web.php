@@ -16,6 +16,10 @@ use App\Http\Controllers\DashboardRedirectController;
 use App\Http\Controllers\OrderPlacedController;
 use App\Http\Controllers\PayMongoWebhookController;
 use App\Http\Controllers\PendingApprovalController;
+use App\Http\Controllers\Restaurant\DashboardController as RestaurantDashboardController;
+use App\Http\Controllers\Restaurant\MenuCategoryController as RestaurantMenuCategoryController;
+use App\Http\Controllers\Restaurant\MenuItemController as RestaurantMenuItemController;
+use App\Http\Controllers\Restaurant\OperatingStatusController as RestaurantOperatingStatusController;
 use App\Http\Controllers\RiderOrderController;
 use App\Http\Controllers\RiderRemittanceController;
 use Illuminate\Support\Facades\Route;
@@ -141,7 +145,52 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('pending', [PendingApprovalController::class, 'restaurant'])->name('pending');
 
         Route::middleware('approved:restaurant')->group(function () {
-            Route::inertia('dashboard', 'restaurant/dashboard')->name('dashboard');
+            Route::get('dashboard', RestaurantDashboardController::class)->name('dashboard');
+            Route::patch('operating-status', RestaurantOperatingStatusController::class)
+                ->name('operating-status.update');
+
+            Route::get('menu/items', [RestaurantMenuItemController::class, 'index'])
+                ->name('menu.items.index');
+            Route::get('menu/items/create', [RestaurantMenuItemController::class, 'create'])
+                ->name('menu.items.create');
+            Route::post('menu/items', [RestaurantMenuItemController::class, 'store'])
+                ->name('menu.items.store');
+            Route::get('menu/items/{menuItem}/edit', [RestaurantMenuItemController::class, 'edit'])
+                ->name('menu.items.edit');
+            Route::patch('menu/items/{menuItem}', [RestaurantMenuItemController::class, 'update'])
+                ->name('menu.items.update');
+            Route::patch('menu/items/{menuItem}/availability', [RestaurantMenuItemController::class, 'updateAvailability'])
+                ->name('menu.items.availability');
+            Route::delete('menu/items/{menuItem}', [RestaurantMenuItemController::class, 'destroy'])
+                ->name('menu.items.destroy');
+
+            Route::get('menu/categories', [RestaurantMenuCategoryController::class, 'index'])
+                ->name('menu.categories.index');
+            Route::post('menu/categories', [RestaurantMenuCategoryController::class, 'store'])
+                ->name('menu.categories.store');
+            Route::patch('menu/categories/{menuCategory}', [RestaurantMenuCategoryController::class, 'update'])
+                ->name('menu.categories.update');
+            Route::patch('menu/categories/{menuCategory}/move', [RestaurantMenuCategoryController::class, 'move'])
+                ->name('menu.categories.move');
+            Route::delete('menu/categories/{menuCategory}', [RestaurantMenuCategoryController::class, 'destroy'])
+                ->name('menu.categories.destroy');
+
+            Route::inertia('orders/active', 'restaurant/coming-soon', ['title' => 'New and active orders'])
+                ->name('orders.active');
+            Route::inertia('orders/history', 'restaurant/coming-soon', ['title' => 'Order history'])
+                ->name('orders.history');
+            Route::inertia('store/profile', 'restaurant/coming-soon', ['title' => 'Profile and hours'])
+                ->name('store.profile');
+            Route::inertia('store/documents', 'restaurant/coming-soon', ['title' => 'Documents'])
+                ->name('store.documents');
+            Route::inertia('promotions', 'restaurant/coming-soon', ['title' => 'Promotions'])
+                ->name('promotions.index');
+            Route::inertia('earnings/summary', 'restaurant/coming-soon', ['title' => 'Sales summary'])
+                ->name('earnings.summary');
+            Route::inertia('earnings/payouts', 'restaurant/coming-soon', ['title' => 'Payouts'])
+                ->name('earnings.payouts');
+            Route::inertia('reviews', 'restaurant/coming-soon', ['title' => 'Reviews'])
+                ->name('reviews.index');
         });
     });
 
