@@ -11,6 +11,10 @@ import {
 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
+import OrderTrackingMap, {
+    type MapPoint,
+    type RiderLocation,
+} from '@/components/customer/order-tracking-map';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,12 +42,17 @@ type Rider = {
     name: string;
     photo_url: string | null;
     vehicle_type: string;
+    current_latitude: number | null;
+    current_longitude: number | null;
+    location_updated_at: string | null;
 };
 
 type TrackingOrder = {
     id: number;
     order_number: string;
     restaurant_name: string;
+    restaurant_location: MapPoint;
+    delivery_location: MapPoint & { address: string };
     status: OrderStatus;
     payment_method: 'cod' | 'gcash' | 'card';
     placed_at: string;
@@ -74,6 +83,13 @@ type StatusUpdate = {
     cancellation_reason: string | null;
     rejection_reason: string | null;
     updated_at: string;
+};
+
+type LocationUpdate = {
+    order_id: number;
+    latitude: number;
+    longitude: number;
+    timestamp: string;
 };
 
 const steps = [
@@ -148,6 +164,15 @@ const terminalLabels: Partial<Record<OrderStatus, string>> = {
     failed_delivery: 'Delivery failed',
 };
 
+const mapStatuses = new Set<OrderStatus>([
+    'rider_assigned',
+    'at_restaurant',
+    'picked_up',
+    'on_the_way',
+    'arrived',
+    'delivered',
+]);
+
 const dateTime = new Intl.DateTimeFormat('en-PH', {
     dateStyle: 'medium',
     timeStyle: 'short',
@@ -180,6 +205,26 @@ function initials(name: string): string {
         .toUpperCase();
 }
 
+function initialRiderLocation(order: TrackingOrder): RiderLocation | null {
+    const rider = order.rider;
+
+    if (
+        rider?.current_latitude === null ||
+        rider?.current_latitude === undefined ||
+        rider.current_longitude === null ||
+        rider.current_longitude === undefined ||
+        rider.location_updated_at === null
+    ) {
+        return null;
+    }
+
+    return {
+        latitude: rider.current_latitude,
+        longitude: rider.current_longitude,
+        timestamp: rider.location_updated_at,
+    };
+}
+
 export default function TrackOrder({
     order,
     history,
@@ -194,6 +239,9 @@ export default function TrackOrder({
         initialNotice(order),
     );
     const [cancelling, setCancelling] = useState(false);
+    const [riderLocation, setRiderLocation] = useState<RiderLocation | null>(
+        () => initialRiderLocation(order),
+    );
     const processedEvents = useRef(new Set<string>());
 
     useEcho<StatusUpdate>(
@@ -208,6 +256,19 @@ export default function TrackOrder({
             }
 
             processedEvents.current.add(update.event_id);
+            if (
+                update.rider?.current_latitude !== null &&
+                update.rider?.current_latitude !== undefined &&
+                update.rider.current_longitude !== null &&
+                update.rider.current_longitude !== undefined &&
+                update.rider.location_updated_at !== null
+            ) {
+                setRiderLocation({
+                    latitude: update.rider.current_latitude,
+                    longitude: update.rider.current_longitude,
+                    timestamp: update.rider.location_updated_at,
+                });
+            }
             setTracking((current) => ({
                 ...current,
                 status: update.status,
@@ -243,6 +304,23 @@ export default function TrackOrder({
                     terminalLabels[update.status] ??
                     steps[statusRank[update.status]]?.label ??
                     update.status.replaceAll('_', ' '),
+            });
+        },
+        [order.id],
+    );
+
+    useEcho<LocationUpdate>(
+        `order.${order.id}.status`,
+        '.rider.location.updated',
+        (update) => {
+            if (update.order_id !== order.id) {
+                return;
+            }
+
+            setRiderLocation({
+                latitude: update.latitude,
+                longitude: update.longitude,
+                timestamp: update.timestamp,
             });
         },
         [order.id],
@@ -366,6 +444,35 @@ export default function TrackOrder({
                             </p>
                         )}
                     </div>
+                )}
+
+                {mapStatuses.has(tracking.status) && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex flex-col justify-between gap-1 sm:flex-row sm:items-center">
+                                <span>Live delivery map</span>
+                                {riderLocation && (
+                                    <span className="text-muted-foreground text-xs font-normal">
+                                        Updated{' '}
+                                        {dateTime.format(
+                                            new Date(riderLocation.timestamp),
+                                        )}
+                                    </span>
+                                )}
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <OrderTrackingMap
+                                restaurant={tracking.restaurant_location}
+                                delivery={tracking.delivery_location}
+                                rider={riderLocation}
+                            />
+                            <p className="text-muted-foreground mt-3 text-xs">
+                                The dashed line is a straight-line guide, not a
+                                road route or arrival-time estimate.
+                            </p>
+                        </CardContent>
+                    </Card>
                 )}
 
                 <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">

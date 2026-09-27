@@ -25,7 +25,8 @@ class OrderController extends Controller
         Gate::authorize('view', $order);
 
         $order->load([
-            'restaurant:id,name',
+            'restaurant:id,name,latitude,longitude',
+            'deliveryAddress:id,address_line,latitude,longitude',
             'rider.user:id,name,avatar_path',
             'poolOffer:id,order_id,escalation_stage',
             'statusHistory' => fn ($query) => $query->oldest('created_at'),
@@ -36,6 +37,15 @@ class OrderController extends Controller
                 'id' => $order->id,
                 'order_number' => $order->order_number,
                 'restaurant_name' => $order->restaurant->name,
+                'restaurant_location' => [
+                    'latitude' => (float) $order->restaurant->latitude,
+                    'longitude' => (float) $order->restaurant->longitude,
+                ],
+                'delivery_location' => [
+                    'address' => $order->deliveryAddress->address_line,
+                    'latitude' => (float) $order->deliveryAddress->latitude,
+                    'longitude' => (float) $order->deliveryAddress->longitude,
+                ],
                 'status' => $order->status,
                 'payment_method' => $order->payment_method,
                 'placed_at' => Carbon::parse($order->placed_at)->toIso8601String(),
@@ -49,6 +59,11 @@ class OrderController extends Controller
                         ? null
                         : Storage::disk('public')->url($order->rider->user->avatar_path),
                     'vehicle_type' => $order->rider->vehicle_type,
+                    'current_latitude' => $order->rider->current_latitude,
+                    'current_longitude' => $order->rider->current_longitude,
+                    'location_updated_at' => $order->rider->last_location_at === null
+                        ? null
+                        : Carbon::parse($order->rider->last_location_at)->toIso8601String(),
                 ],
                 'escalation_stage' => $order->poolOffer?->escalation_stage,
                 'cancellation_reason' => $order->cancellation_reason,

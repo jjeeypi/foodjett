@@ -21,6 +21,7 @@ use App\Http\Controllers\Restaurant\DashboardController as RestaurantDashboardCo
 use App\Http\Controllers\Restaurant\MenuCategoryController as RestaurantMenuCategoryController;
 use App\Http\Controllers\Restaurant\MenuItemController as RestaurantMenuItemController;
 use App\Http\Controllers\Restaurant\OperatingStatusController as RestaurantOperatingStatusController;
+use App\Http\Controllers\Rider\LocationController as RiderLocationController;
 use App\Http\Controllers\Rider\OrderPoolController;
 use App\Http\Controllers\RiderOrderController;
 use App\Http\Controllers\RiderRemittanceController;
@@ -204,6 +205,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('orders', [OrderPoolController::class, 'index'])->name('orders.index');
             Route::post('orders/{order}/accept', [OrderPoolController::class, 'accept'])->name('orders.accept');
             Route::patch('orders/{order}/complete', [RiderOrderController::class, 'complete'])->name('orders.complete');
+            Route::post('location', [RiderLocationController::class, 'update'])
+                ->middleware('throttle:30,1')
+                ->name('location.update');
             Route::get('remittances', [RiderRemittanceController::class, 'index'])->name('remittances.index');
             Route::post('remittances', [RiderRemittanceController::class, 'store'])->name('remittances.store');
         });

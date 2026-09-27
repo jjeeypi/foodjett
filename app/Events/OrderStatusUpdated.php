@@ -28,7 +28,16 @@ class OrderStatusUpdated implements ShouldBroadcast, ShouldDispatchAfterCommit
 
     public readonly ?int $prep_extended_minutes;
 
-    /** @var array{name: string, photo_url: string|null, vehicle_type: string}|null */
+    /**
+     * @var array{
+     *     name: string,
+     *     photo_url: string|null,
+     *     vehicle_type: string,
+     *     current_latitude: float|null,
+     *     current_longitude: float|null,
+     *     location_updated_at: string|null
+     * }|null
+     */
     public readonly ?array $rider;
 
     public readonly ?string $escalation_stage;
@@ -64,6 +73,11 @@ class OrderStatusUpdated implements ShouldBroadcast, ShouldDispatchAfterCommit
                 ? null
                 : Storage::disk('public')->url($rider->user->avatar_path),
             'vehicle_type' => $rider->vehicle_type,
+            'current_latitude' => $rider->current_latitude,
+            'current_longitude' => $rider->current_longitude,
+            'location_updated_at' => $rider->last_location_at === null
+                ? null
+                : Carbon::parse($rider->last_location_at)->toIso8601String(),
         ];
         $this->escalation_stage = $order->poolOffer?->escalation_stage;
         $this->notice = $notice;

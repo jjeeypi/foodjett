@@ -37,6 +37,7 @@ FoodJett is a multi-role food ordering and delivery platform built with Laravel,
 - Failed COD delivery leaves the payment pending for administrator follow-up.
 - Riders at or above their cash remittance limit cannot accept COD orders.
 - Nearby rider-pool orders appear and disappear live through Reverb, with atomic first-rider-wins acceptance and one active delivery per rider.
+- Customers can follow an assigned rider on a live Leaflet/OpenStreetMap view while the rider keeps the active-delivery page open.
 - Rider remittance requests and administrator confirmation are supported.
 - Payment status changes are recorded separately from order status history.
 
@@ -217,7 +218,7 @@ DEFAULT_SERVICE_FEE=10
 
 ## Real-time order alerts
 
-Restaurant new-order alerts, customer order-status tracking, and the public rider order pool use Laravel Reverb. Restaurant/customer channels are private and role-authorized; `orders.pool` is public and contains only operational offer data. Add these values to `.env` (use unique app credentials outside local development):
+Restaurant new-order alerts, customer order-status/location tracking, and the public rider order pool use Laravel Reverb. Restaurant/customer channels are private and role-authorized; assigned riders may listen on their own order channel. `orders.pool` is public and contains only operational offer data. Add these values to `.env` (use unique app credentials outside local development):
 
 ```env
 BROADCAST_CONNECTION=reverb
@@ -346,6 +347,9 @@ tests/Feature/
 - `TransitionOrderStatus` creates the initial pool offer and broadcasts `OrderAvailableInPool` when an order first enters `finding_rider`; leaving that status broadcasts `OrderTakenFromPool`, covering rider acceptance, administrator assignment, and future auto-cancellation through one integration point.
 - Estimated rider pay currently uses a ₱40 base plus ₱10 per restaurant-to-customer kilometre plus the pool incentive. Pickup and delivery distances are straight-line Haversine distances, not road routes or travel-time estimates.
 - The project still has no restaurant accept/ready workflow or rider-pool escalation job. Those future paths must call `TransitionOrderStatus`; direct database status updates will bypass history and real-time broadcasts.
+- Rider location is requested every seven seconds while an order is in `rider_assigned`, `at_restaurant`, `picked_up`, or `on_the_way`; the server permits at most one stored/broadcast update every five seconds per rider.
+- Live location depends on browser permission and foreground-tab behavior. Accuracy varies by device, and offline/background tracking is intentionally not implemented.
+- The customer map uses OpenStreetMap tiles and a straight line from rider to delivery point. It does not calculate a road route, traffic, or ETA.
 - Delivery zones are edited as center latitude/longitude plus radius and stored as circle JSON. Editing a legacy GeoJSON polygon converts its bounding area to an approximate circle.
 - Checkout/address validation against active delivery zones is not implemented yet. Zone changes therefore do not currently affect in-progress checkouts.
 - Creating or changing an administrator account does not send an automatic notification. Credentials and status changes must be communicated separately.

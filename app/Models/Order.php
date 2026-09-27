@@ -23,6 +23,14 @@ class Order extends Model
         'arrived',
     ];
 
+    /** @var list<string> */
+    public const RIDER_LOCATION_STATUSES = [
+        'rider_assigned',
+        'at_restaurant',
+        'picked_up',
+        'on_the_way',
+    ];
+
     protected $fillable = [
         'order_number', 'customer_id', 'restaurant_id', 'customer_address_id', 'rider_id',
         'status', 'subtotal', 'delivery_fee', 'service_fee', 'discount_amount',

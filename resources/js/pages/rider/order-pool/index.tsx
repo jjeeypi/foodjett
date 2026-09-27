@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import RiderLocationTracker from '@/components/rider/rider-location-tracker';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -495,6 +496,12 @@ export default function RiderOrderPool({
 
                 <section className="space-y-3">
                     <h2 className="text-lg font-semibold">Active delivery</h2>
+                    {activeOrders[0] && (
+                        <RiderLocationTracker
+                            orderId={activeOrders[0].id}
+                            initialStatus={activeOrders[0].status}
+                        />
+                    )}
                     <div className="grid gap-4 lg:grid-cols-2">
                         {activeOrders.map((order) => (
                             <Card key={order.id}>

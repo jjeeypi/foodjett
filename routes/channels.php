@@ -14,12 +14,19 @@ Broadcast::channel('order.{orderId}.status', function (User $user, int $orderId)
         return true;
     }
 
-    $customerId = $user->customer?->id;
-
-    return $user->isCustomer()
-        && $customerId !== null
-        && Order::query()
+    if ($user->isCustomer() && $user->customer !== null) {
+        return Order::query()
             ->whereKey($orderId)
-            ->where('customer_id', $customerId)
+            ->where('customer_id', $user->customer->id)
             ->exists();
+    }
+
+    if ($user->isRider() && $user->rider !== null) {
+        return Order::query()
+            ->whereKey($orderId)
+            ->where('rider_id', $user->rider->id)
+            ->exists();
+    }
+
+    return false;
 });

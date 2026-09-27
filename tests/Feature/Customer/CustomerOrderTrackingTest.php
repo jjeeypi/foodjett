@@ -52,6 +52,8 @@ class CustomerOrderTrackingTest extends TestCase
                 ->where('order.status', 'rider_assigned')
                 ->where('order.rider.name', $rider->user->name)
                 ->where('order.rider.vehicle_type', 'motorcycle')
+                ->where('order.restaurant_location.latitude', $order->restaurant->latitude)
+                ->where('order.delivery_location.latitude', $order->deliveryAddress->latitude)
                 ->has('history', 1));
 
         $this->actingAs($admin->user)
@@ -86,21 +88,27 @@ class CustomerOrderTrackingTest extends TestCase
         $this->assertSame('rider_assigned', $payload['status']);
         $this->assertSame($rider->user->name, $payload['rider']['name']);
         $this->assertSame('bicycle', $payload['rider']['vehicle_type']);
+        $this->assertSame($rider->current_latitude, $payload['rider']['current_latitude']);
+        $this->assertSame($rider->current_longitude, $payload['rider']['current_longitude']);
         $this->assertNotEmpty($payload['event_id']);
     }
 
-    public function test_only_the_owner_or_an_admin_can_join_an_order_status_channel(): void
+    public function test_only_the_owner_assigned_rider_or_an_admin_can_join_an_order_status_channel(): void
     {
         $customer = Customer::factory()->create();
         $otherCustomer = Customer::factory()->create();
         $admin = Admin::factory()->create();
-        $order = $this->makeOrder($customer);
+        $rider = Rider::factory()->approved()->create();
+        $otherRider = Rider::factory()->approved()->create();
+        $order = $this->makeOrder($customer, ['rider_id' => $rider->id]);
         $authorizer = Broadcast::getChannels()->get('order.{orderId}.status');
 
         $this->assertIsCallable($authorizer);
         $this->assertTrue($authorizer($customer->user, $order->id));
         $this->assertTrue($authorizer($admin->user, $order->id));
+        $this->assertTrue($authorizer($rider->user, $order->id));
         $this->assertFalse($authorizer($otherCustomer->user, $order->id));
+        $this->assertFalse($authorizer($otherRider->user, $order->id));
     }
 
     public function test_central_transition_records_history_and_broadcasts_prep_extension(): void
