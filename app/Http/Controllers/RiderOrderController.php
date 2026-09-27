@@ -10,87 +10,10 @@ use App\Models\Payment;
 use App\Models\Rider;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
-use Inertia\Inertia;
-use Inertia\Response;
 
 class RiderOrderController extends Controller
 {
-    public function index(): Response
-    {
-        $rider = request()->user()?->rider;
-        abort_unless($rider !== null, 403);
-
-        $poolQuery = Order::query()
-            ->with(['restaurant:id,name,address', 'deliveryAddress:id,address_line'])
-            ->whereNull('rider_id')
-            ->where('status', 'finding_rider');
-
-        $blockedCodOrders = 0;
-        if (! $rider->canAcceptCodOrders()) {
-            $blockedCodOrders = (clone $poolQuery)->where('payment_method', 'cod')->count();
-            $poolQuery->where('payment_method', '!=', 'cod');
-        }
-
-        return Inertia::render('rider/orders', [
-            'rider' => $rider->only(['cash_on_hand', 'cash_remit_limit']),
-            'poolOrders' => $poolQuery->oldest('placed_at')->get(),
-            'activeOrders' => Order::query()
-                ->with(['restaurant:id,name,address', 'deliveryAddress:id,address_line', 'payment'])
-                ->where('rider_id', $rider->id)
-                ->whereNotIn('status', [
-                    'delivered', 'failed_delivery', 'rejected_by_restaurant',
-                    'cancelled_by_customer', 'cancelled_by_restaurant', 'cancelled_no_rider',
-                ])
-                ->oldest('rider_assigned_at')
-                ->get(),
-            'blockedCodOrders' => $blockedCodOrders,
-        ]);
-    }
-
-    public function accept(Order $order, TransitionOrderStatus $transition): RedirectResponse
-    {
-        $rider = request()->user()?->rider;
-        abort_unless($rider !== null, 403);
-
-        if ($order->payment_method === 'cod' && ! $rider->canAcceptCodOrders()) {
-            throw ValidationException::withMessages([
-                'order' => 'You have reached your cash remit limit. Remit cash before accepting another COD order.',
-            ]);
-        }
-
-        Gate::authorize('updateAsRider', $order);
-
-        DB::transaction(function () use ($order, $rider, $transition): void {
-            $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
-            $lockedRider = Rider::query()->lockForUpdate()->findOrFail($rider->id);
-
-            if ($lockedOrder->rider_id !== null || $lockedOrder->status !== 'finding_rider') {
-                throw ValidationException::withMessages(['order' => 'This order is no longer available.']);
-            }
-
-            if ($lockedOrder->payment_method === 'cod' && ! $lockedRider->canAcceptCodOrders()) {
-                throw ValidationException::withMessages([
-                    'order' => 'You have reached your cash remit limit. Remit cash before accepting another COD order.',
-                ]);
-            }
-
-            $transition->handle(
-                $lockedOrder,
-                'rider_assigned',
-                'rider',
-                'Rider accepted the delivery.',
-                [
-                    'rider_id' => $lockedRider->id,
-                    'rider_assigned_at' => now(),
-                ],
-            );
-        });
-
-        return back()->with('success', 'Order accepted.');
-    }
-
     public function complete(
         CompleteRiderOrderRequest $request,
         Order $order,

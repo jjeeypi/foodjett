@@ -21,6 +21,7 @@ use App\Http\Controllers\Restaurant\DashboardController as RestaurantDashboardCo
 use App\Http\Controllers\Restaurant\MenuCategoryController as RestaurantMenuCategoryController;
 use App\Http\Controllers\Restaurant\MenuItemController as RestaurantMenuItemController;
 use App\Http\Controllers\Restaurant\OperatingStatusController as RestaurantOperatingStatusController;
+use App\Http\Controllers\Rider\OrderPoolController;
 use App\Http\Controllers\RiderOrderController;
 use App\Http\Controllers\RiderRemittanceController;
 use Illuminate\Support\Facades\Route;
@@ -200,8 +201,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::middleware('approved:rider')->group(function () {
             Route::inertia('dashboard', 'rider/dashboard')->name('dashboard');
-            Route::get('orders', [RiderOrderController::class, 'index'])->name('orders.index');
-            Route::post('orders/{order}/accept', [RiderOrderController::class, 'accept'])->name('orders.accept');
+            Route::get('orders', [OrderPoolController::class, 'index'])->name('orders.index');
+            Route::post('orders/{order}/accept', [OrderPoolController::class, 'accept'])->name('orders.accept');
             Route::patch('orders/{order}/complete', [RiderOrderController::class, 'complete'])->name('orders.complete');
             Route::get('remittances', [RiderRemittanceController::class, 'index'])->name('remittances.index');
             Route::post('remittances', [RiderRemittanceController::class, 'store'])->name('remittances.store');

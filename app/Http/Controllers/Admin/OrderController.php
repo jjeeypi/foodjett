@@ -157,6 +157,8 @@ class OrderController extends Controller
             ->where('availability_status', 'available')
             ->whereNotNull('current_latitude')
             ->whereNotNull('current_longitude')
+            ->whereDoesntHave('orders', fn (Builder $query) => $query
+                ->whereIn('status', Order::RIDER_ACTIVE_STATUSES))
             ->whereHas('user', fn (Builder $query) => $query->where('status', 'active'));
 
         if ($order->payment_method === 'cod') {
@@ -166,7 +168,7 @@ class OrderController extends Controller
         $latitude = (float) $order->restaurant->latitude;
         $longitude = (float) $order->restaurant->longitude;
 
-        if (DB::connection()->getDriverName() === 'mysql') {
+        if (in_array(DB::connection()->getDriverName(), ['mysql', 'mariadb'], true)) {
             $distanceSql = <<<'SQL'
                 6371 * 2 * ASIN(SQRT(
                     POWER(SIN(RADIANS(riders.current_latitude - ?) / 2), 2) +
@@ -259,6 +261,16 @@ class OrderController extends Controller
             if ($lockedOrder->payment_method === 'cod' && ! $rider->canAcceptCodOrders()) {
                 throw ValidationException::withMessages([
                     'rider_id' => 'The selected rider has reached their cash remit limit.',
+                ]);
+            }
+
+            if (Order::query()
+                ->where('rider_id', $rider->id)
+                ->whereIn('status', Order::RIDER_ACTIVE_STATUSES)
+                ->lockForUpdate()
+                ->exists()) {
+                throw ValidationException::withMessages([
+                    'rider_id' => 'The selected rider already has an active delivery.',
                 ]);
             }
 

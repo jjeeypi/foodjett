@@ -36,6 +36,7 @@ FoodJett is a multi-role food ordering and delivery platform built with Laravel,
 - Rider delivery confirmation records cash collection and increases `cash_on_hand`.
 - Failed COD delivery leaves the payment pending for administrator follow-up.
 - Riders at or above their cash remittance limit cannot accept COD orders.
+- Nearby rider-pool orders appear and disappear live through Reverb, with atomic first-rider-wins acceptance and one active delivery per rider.
 - Rider remittance requests and administrator confirmation are supported.
 - Payment status changes are recorded separately from order status history.
 
@@ -216,7 +217,7 @@ DEFAULT_SERVICE_FEE=10
 
 ## Real-time order alerts
 
-Restaurant new-order alerts and customer order-status tracking use Laravel Reverb on private, role-authorized channels. Add these values to `.env` (use unique app credentials outside local development):
+Restaurant new-order alerts, customer order-status tracking, and the public rider order pool use Laravel Reverb. Restaurant/customer channels are private and role-authorized; `orders.pool` is public and contains only operational offer data. Add these values to `.env` (use unique app credentials outside local development):
 
 ```env
 BROADCAST_CONNECTION=reverb
@@ -342,6 +343,9 @@ tests/Feature/
 - The default commission setting applies to newly registered restaurants. Existing restaurants retain their individually stored commission rate.
 - Rider search and escalation settings are ready for runtime use, but the project does not yet contain the queue job that widens the search, adds incentives, alerts admins/customers, or auto-cancels orders. That worker should read values through `PlatformSetting::get()`, `getInt()`, or `getFloat()` when it is implemented.
 - Existing rider/admin order mutations now use `TransitionOrderStatus`, which records history and broadcasts after commit. Future restaurant workflow and escalation-job status changes must use the same action; the escalation job should update `RiderPoolOffer` as an Eloquent model so its customer-notification observer runs.
+- `TransitionOrderStatus` creates the initial pool offer and broadcasts `OrderAvailableInPool` when an order first enters `finding_rider`; leaving that status broadcasts `OrderTakenFromPool`, covering rider acceptance, administrator assignment, and future auto-cancellation through one integration point.
+- Estimated rider pay currently uses a ₱40 base plus ₱10 per restaurant-to-customer kilometre plus the pool incentive. Pickup and delivery distances are straight-line Haversine distances, not road routes or travel-time estimates.
+- The project still has no restaurant accept/ready workflow or rider-pool escalation job. Those future paths must call `TransitionOrderStatus`; direct database status updates will bypass history and real-time broadcasts.
 - Delivery zones are edited as center latitude/longitude plus radius and stored as circle JSON. Editing a legacy GeoJSON polygon converts its bounding area to an approximate circle.
 - Checkout/address validation against active delivery zones is not implemented yet. Zone changes therefore do not currently affect in-progress checkouts.
 - Creating or changing an administrator account does not send an automatic notification. Credentials and status changes must be communicated separately.

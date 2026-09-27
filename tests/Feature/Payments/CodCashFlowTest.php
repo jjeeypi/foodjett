@@ -10,6 +10,7 @@ use App\Models\Payment;
 use App\Models\Restaurant;
 use App\Models\Rider;
 use App\Models\RiderCashRemittance;
+use App\Models\RiderPoolOffer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -30,8 +31,12 @@ class CodCashFlowTest extends TestCase
             ->get(route('rider.orders.index'))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->component('rider/orders')
-                ->has('poolOrders', 0)
+                ->component('rider/order-pool/index')
+                ->has('poolOrders', 1)
+                ->where(
+                    'poolOrders.0.accept_block_reason',
+                    'Cash remit limit reached. Remit cash before accepting this COD order.'
+                )
                 ->where('blockedCodOrders', 1));
 
         $this->actingAs($rider->user)
@@ -142,7 +147,7 @@ class CodCashFlowTest extends TestCase
         $address = CustomerAddress::factory()->create(['customer_id' => $customer->id]);
         $restaurant = Restaurant::factory()->approved()->create();
 
-        return Order::create([
+        $order = Order::create([
             'order_number' => 'FJ-'.fake()->unique()->numerify('######'),
             'customer_id' => $customer->id,
             'restaurant_id' => $restaurant->id,
@@ -157,6 +162,17 @@ class CodCashFlowTest extends TestCase
             'payment_method' => 'cod',
             ...$overrides,
         ]);
+
+        if ($order->status === 'finding_rider') {
+            RiderPoolOffer::query()->create([
+                'order_id' => $order->id,
+                'search_radius_km' => 100,
+                'incentive_amount' => 0,
+                'escalation_stage' => 'initial',
+            ]);
+        }
+
+        return $order;
     }
 
     private function createPayment(Order $order, string $status): Payment

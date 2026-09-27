@@ -2,9 +2,13 @@
 
 namespace App\Actions\Orders;
 
+use App\Events\OrderAvailableInPool;
 use App\Events\OrderStatusUpdated;
+use App\Events\OrderTakenFromPool;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
+use App\Models\PlatformSetting;
+use App\Models\RiderPoolOffer;
 use Illuminate\Support\Facades\DB;
 
 class TransitionOrderStatus
@@ -28,6 +32,12 @@ class TransitionOrderStatus
             $attributes,
             $notice,
         ): Order {
+            $previousStatus = $order->status;
+
+            if ($status === 'finding_rider' && $previousStatus !== 'finding_rider') {
+                $attributes['rider_search_started_at'] ??= now();
+            }
+
             $order->forceFill([...$attributes, 'status' => $status]);
 
             if (! $order->isDirty()) {
@@ -43,6 +53,21 @@ class TransitionOrderStatus
                 'note' => $note,
             ]);
 
+            if ($status === 'finding_rider' && $previousStatus !== 'finding_rider') {
+                RiderPoolOffer::query()->firstOrCreate(
+                    ['order_id' => $order->id],
+                    [
+                        'search_radius_km' => PlatformSetting::getFloat(
+                            'rider_search_initial_radius_km',
+                            3,
+                        ),
+                        'incentive_amount' => 0,
+                        'escalation_stage' => 'initial',
+                        'admin_assigned' => false,
+                    ],
+                );
+            }
+
             if (
                 $notice === null
                 && array_key_exists('prep_extended_minutes', $attributes)
@@ -53,6 +78,12 @@ class TransitionOrderStatus
 
             $order->refresh();
             OrderStatusUpdated::dispatch($order, $notice);
+
+            if ($status === 'finding_rider' && $previousStatus !== 'finding_rider') {
+                OrderAvailableInPool::dispatch($order);
+            } elseif ($previousStatus === 'finding_rider' && $status !== 'finding_rider') {
+                OrderTakenFromPool::dispatch($order);
+            }
 
             return $order;
         });

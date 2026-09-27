@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Events\OrderTakenFromPool;
 use App\Models\Admin;
 use App\Models\AuditLog;
 use App\Models\Customer;
@@ -13,6 +14,7 @@ use App\Models\Restaurant;
 use App\Models\Rider;
 use App\Models\RiderPoolOffer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -155,6 +157,7 @@ class AdminOrderManagementTest extends TestCase
 
     public function test_admin_can_manually_assign_an_available_rider(): void
     {
+        Event::fake([OrderTakenFromPool::class]);
         $admin = Admin::factory()->create();
         $order = $this->createOrder([
             'status' => 'finding_rider',
@@ -191,6 +194,10 @@ class AdminOrderManagementTest extends TestCase
             'action' => 'order.rider_assigned',
             'subject_id' => $order->id,
         ]);
+        Event::assertDispatched(
+            OrderTakenFromPool::class,
+            fn (OrderTakenFromPool $event): bool => $event->id === $order->id,
+        );
     }
 
     public function test_admin_cannot_assign_a_cash_limited_rider_to_a_cod_order(): void
