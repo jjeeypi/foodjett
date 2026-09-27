@@ -5,6 +5,7 @@ import { initializeTheme } from '@/hooks/use-appearance';
 import AdminLayout from '@/layouts/admin-layout';
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
+import CustomerLayout from '@/layouts/customer-layout';
 import RestaurantLayout from '@/layouts/restaurant-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { configureEcho } from '@laravel/echo-react';
@@ -28,6 +29,8 @@ void createInertiaApp({
             case name.startsWith('restaurant/') &&
                 name !== 'restaurant/pending':
                 return RestaurantLayout;
+            case name.startsWith('customer/'):
+                return CustomerLayout;
             case name.startsWith('settings/'):
                 return [AppLayout, SettingsLayout];
             default:

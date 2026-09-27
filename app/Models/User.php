@@ -138,7 +138,7 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
             'rider' => $this->rider?->approval_status === 'approved'
                 ? route('rider.dashboard', absolute: false)
                 : route('rider.pending', absolute: false),
-            'customer' => route('customer.dashboard', absolute: false),
+            'customer' => route('customer.home', absolute: false),
             default => route('home', absolute: false),
         };
     }

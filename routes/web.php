@@ -11,8 +11,8 @@ use App\Http\Controllers\Auth\RegisteredRestaurantController;
 use App\Http\Controllers\Auth\RegisteredRiderController;
 use App\Http\Controllers\CheckoutCallbackController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\Customer\HomeController as CustomerHomeController;
 use App\Http\Controllers\Customer\OrderController as CustomerOrderController;
-use App\Http\Controllers\CustomerDashboardController;
 use App\Http\Controllers\DashboardRedirectController;
 use App\Http\Controllers\OrderPlacedController;
 use App\Http\Controllers\PayMongoWebhookController;
@@ -218,7 +218,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('customer.orders.track');
 
     Route::prefix('customer')->name('customer.')->middleware('role:customer')->group(function () {
-        Route::get('dashboard', CustomerDashboardController::class)->name('dashboard');
+        Route::get('/', CustomerHomeController::class)->name('home');
+        Route::get('foods', CustomerHomeController::class)->name('foods.index');
+        Route::redirect('dashboard', '/customer')->name('dashboard');
+        Route::inertia('messages', 'customer/coming-soon', ['title' => 'Messages'])
+            ->name('messages.index');
+        Route::inertia('orders', 'customer/coming-soon', ['title' => 'Your orders'])
+            ->name('orders.index');
+        Route::inertia('addresses', 'customer/coming-soon', ['title' => 'Addresses'])
+            ->name('addresses.index');
+        Route::inertia('support', 'customer/coming-soon', ['title' => 'Contact support'])
+            ->name('support.index');
         Route::get('checkout/paymongo/{pendingCheckout}/callback', CheckoutCallbackController::class)
             ->middleware('signed')
             ->name('checkout.callback');

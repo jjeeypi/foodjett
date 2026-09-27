@@ -22,6 +22,14 @@ declare module '@inertiajs/core' {
                 operating_status: 'open' | 'closed' | 'temporarily_closed';
                 approval_status: 'pending' | 'approved' | 'rejected';
             } | null;
+            customerContext: {
+                active_order: {
+                    id: number;
+                    order_number: string;
+                    status: string;
+                    track_url: string;
+                } | null;
+            } | null;
             sidebarOpen: boolean;
             [key: string]: unknown;
         };

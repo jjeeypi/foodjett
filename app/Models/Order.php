@@ -31,6 +31,17 @@ class Order extends Model
         'on_the_way',
     ];
 
+    /** @var list<string> */
+    public const TERMINAL_STATUSES = [
+        'rejected_by_restaurant',
+        'cancelled_by_customer',
+        'cancelled_by_restaurant',
+        'cancelled_no_rider',
+        'cancelled_by_admin',
+        'failed_delivery',
+        'delivered',
+    ];
+
     protected $fillable = [
         'order_number', 'customer_id', 'restaurant_id', 'customer_address_id', 'rider_id',
         'status', 'subtotal', 'delivery_fee', 'service_fee', 'discount_amount',
@@ -150,11 +161,7 @@ class Order extends Model
 
     public function isTerminal(): bool
     {
-        return in_array($this->status, [
-            'rejected_by_restaurant', 'cancelled_by_customer',
-            'cancelled_by_restaurant', 'cancelled_no_rider', 'cancelled_by_admin',
-            'failed_delivery', 'delivered',
-        ]);
+        return in_array($this->status, self::TERMINAL_STATUSES, true);
     }
 
     public function isCancelled(): bool

@@ -24,7 +24,10 @@ class RoleAccessControlTest extends TestCase
         $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk();
         $this->actingAs($restaurant->user)->get(route('restaurant.dashboard'))->assertOk();
         $this->actingAs($rider)->get(route('rider.dashboard'))->assertOk();
-        $this->actingAs($customer)->get(route('customer.dashboard'))->assertOk();
+        $this->actingAs($customer)->get(route('customer.home'))->assertOk();
+        $this->actingAs($customer)
+            ->get(route('customer.dashboard'))
+            ->assertRedirect(route('customer.home'));
     }
 
     public function test_users_cannot_access_another_roles_dashboard(): void

@@ -64,7 +64,7 @@ export default function PaymentResult({
                                     success && orderId ? 'outline' : 'default'
                                 }
                             >
-                                <Link href="/customer/dashboard">
+                                <Link href="/customer">
                                     Back to restaurants
                                 </Link>
                             </Button>

@@ -626,7 +626,7 @@ export default function TrackOrder({
                                     className="w-full"
                                     asChild
                                 >
-                                    <Link href="/customer/dashboard">
+                                    <Link href="/customer">
                                         Browse restaurants
                                     </Link>
                                 </Button>

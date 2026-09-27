@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Order;
 use App\Models\Restaurant;
 use App\Models\Rider;
 use Illuminate\Http\Request;
@@ -70,6 +71,27 @@ class HandleInertiaRequests extends Middleware
                         : Storage::disk('public')->url($restaurant->logo_path),
                     'operating_status' => $restaurant->operating_status,
                     'approval_status' => $restaurant->approval_status,
+                ];
+            },
+            'customerContext' => function () use ($request): ?array {
+                $customer = $request->user()?->customer;
+
+                if (! $request->user()?->isCustomer() || $customer === null) {
+                    return null;
+                }
+
+                $activeOrder = $customer->orders()
+                    ->whereNotIn('status', Order::TERMINAL_STATUSES)
+                    ->latest('placed_at')
+                    ->first(['id', 'order_number', 'status']);
+
+                return [
+                    'active_order' => $activeOrder === null ? null : [
+                        'id' => $activeOrder->id,
+                        'order_number' => $activeOrder->order_number,
+                        'status' => $activeOrder->status,
+                        'track_url' => route('customer.orders.track', $activeOrder, absolute: false),
+                    ],
                 ];
             },
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
