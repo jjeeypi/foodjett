@@ -18,6 +18,7 @@ class OrderPlacedController extends Controller
             'title' => 'Order placed — pay the rider on delivery',
             'message' => 'Your COD order is awaiting restaurant confirmation.',
             'orderNumber' => $order->order_number,
+            'orderId' => $order->id,
             'totalAmount' => (float) $order->total_amount,
         ]);
     }

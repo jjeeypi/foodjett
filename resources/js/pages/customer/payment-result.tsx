@@ -8,12 +8,14 @@ export default function PaymentResult({
     title,
     message,
     orderNumber,
+    orderId,
     totalAmount,
 }: {
     success: boolean;
     title: string;
     message: string;
     orderNumber?: string | null;
+    orderId?: number | null;
     totalAmount?: number;
 }) {
     const Icon = success ? CheckCircle2 : XCircle;
@@ -46,11 +48,27 @@ export default function PaymentResult({
                                 )}
                             </div>
                         )}
-                        <Button asChild>
-                            <Link href="/customer/dashboard">
-                                Back to restaurants
-                            </Link>
-                        </Button>
+                        <div className="flex flex-col justify-center gap-2 sm:flex-row">
+                            {success && orderId && (
+                                <Button asChild>
+                                    <Link
+                                        href={`/customer/orders/${orderId}/track`}
+                                    >
+                                        Track order
+                                    </Link>
+                                </Button>
+                            )}
+                            <Button
+                                asChild
+                                variant={
+                                    success && orderId ? 'outline' : 'default'
+                                }
+                            >
+                                <Link href="/customer/dashboard">
+                                    Back to restaurants
+                                </Link>
+                            </Button>
+                        </div>
                     </CardContent>
                 </Card>
             </div>

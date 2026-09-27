@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\Orders\TransitionOrderStatus;
 use App\Actions\Payments\RecordPaymentStatus;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Order;
 use App\Models\OrderReport;
-use App\Models\OrderStatusHistory;
 use App\Models\Payment;
 use App\Models\Restaurant;
 use App\Models\Rider;
@@ -211,15 +211,18 @@ class OrderController extends Controller
         ]);
     }
 
-    public function assignRider(Request $request, Order $order): RedirectResponse
-    {
+    public function assignRider(
+        Request $request,
+        Order $order,
+        TransitionOrderStatus $transition,
+    ): RedirectResponse {
         Gate::authorize('assignRider', $order);
 
         $validated = $request->validate([
             'rider_id' => ['required', 'integer', 'exists:riders,id'],
         ]);
 
-        DB::transaction(function () use ($order, $validated): void {
+        DB::transaction(function () use ($order, $validated, $transition): void {
             $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
             $rider = Rider::query()
                 ->whereKey((int) $validated['rider_id'])
@@ -260,19 +263,17 @@ class OrderController extends Controller
             }
 
             $before = $lockedOrder->only(['rider_id', 'status', 'rider_assigned_at']);
-            $lockedOrder->update([
-                'rider_id' => $rider->id,
-                'status' => 'rider_assigned',
-                'rider_assigned_at' => now(),
-            ]);
+            $transition->handle(
+                $lockedOrder,
+                'rider_assigned',
+                'admin',
+                "Manually assigned to {$rider->user->name}.",
+                [
+                    'rider_id' => $rider->id,
+                    'rider_assigned_at' => now(),
+                ],
+            );
             $offer->update(['admin_assigned' => true]);
-
-            OrderStatusHistory::query()->create([
-                'order_id' => $lockedOrder->id,
-                'status' => 'rider_assigned',
-                'changed_by' => 'admin',
-                'note' => "Manually assigned to {$rider->user->name}.",
-            ]);
 
             $this->audit($lockedOrder, 'order.rider_assigned', $before, $lockedOrder->only([
                 'rider_id',
@@ -284,15 +285,18 @@ class OrderController extends Controller
         return back()->with('success', 'Rider assigned successfully.');
     }
 
-    public function cancel(Request $request, Order $order): RedirectResponse
-    {
+    public function cancel(
+        Request $request,
+        Order $order,
+        TransitionOrderStatus $transition,
+    ): RedirectResponse {
         Gate::authorize('cancelAsAdmin', $order);
 
         $validated = $request->validate([
             'reason' => ['required', 'string', 'max:2000'],
         ]);
 
-        DB::transaction(function () use ($order, $validated): void {
+        DB::transaction(function () use ($order, $validated, $transition): void {
             $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
 
             if ($lockedOrder->isTerminal()) {
@@ -302,17 +306,16 @@ class OrderController extends Controller
             }
 
             $before = $lockedOrder->only(['status', 'cancellation_reason', 'cancelled_by']);
-            $lockedOrder->update([
-                'status' => 'cancelled_by_admin',
-                'cancellation_reason' => $validated['reason'],
-                'cancelled_by' => 'admin',
-            ]);
-            OrderStatusHistory::query()->create([
-                'order_id' => $lockedOrder->id,
-                'status' => 'cancelled_by_admin',
-                'changed_by' => 'admin',
-                'note' => $validated['reason'],
-            ]);
+            $transition->handle(
+                $lockedOrder,
+                'cancelled_by_admin',
+                'admin',
+                $validated['reason'],
+                [
+                    'cancellation_reason' => $validated['reason'],
+                    'cancelled_by' => 'admin',
+                ],
+            );
             $this->audit($lockedOrder, 'order.cancelled', $before, $lockedOrder->only([
                 'status',
                 'cancellation_reason',

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Orders\FinalizePaidCheckout;
+use App\Models\Order;
 use App\Models\PendingCheckout;
 use App\Services\PayMongo\PayMongoClient;
 use App\Services\PayMongo\PayMongoPaymentVerifier;
@@ -21,7 +22,7 @@ class CheckoutCallbackController extends Controller
         abort_unless(request()->user()?->customer?->id === $pendingCheckout->customer_id, 403);
 
         if ($pendingCheckout->order_id !== null) {
-            return $this->success($pendingCheckout->order?->order_number, (float) $pendingCheckout->total_amount);
+            return $this->success($pendingCheckout->order, (float) $pendingCheckout->total_amount);
         }
 
         if ($pendingCheckout->paymongo_session_id === null) {
@@ -47,16 +48,17 @@ class CheckoutCallbackController extends Controller
 
         $order = $finalize->handle($pendingCheckout, $paymentReference);
 
-        return $this->success($order->order_number, (float) $order->total_amount);
+        return $this->success($order, (float) $order->total_amount);
     }
 
-    private function success(?string $orderNumber, float $totalAmount): Response
+    private function success(?Order $order, float $totalAmount): Response
     {
         return Inertia::render('customer/payment-result', [
             'success' => true,
             'title' => 'Payment Successful — thank you for your order!',
             'message' => 'Your payment was verified and your order has been placed.',
-            'orderNumber' => $orderNumber,
+            'orderNumber' => $order?->order_number,
+            'orderId' => $order?->id,
             'totalAmount' => $totalAmount,
         ]);
     }

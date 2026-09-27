@@ -50,6 +50,7 @@ FoodJett is a multi-role food ordering and delivery platform built with Laravel,
 - All menu routes require an approved restaurant and enforce record ownership server-side.
 - Items referenced by order history are retained and marked unavailable instead of being deleted.
 - New orders appear on the restaurant dashboard in real time with a banner, toast, and notification chime.
+- Customers can track order progress in real time on a private per-order channel, including ETA changes and assigned-rider details.
 
 ### Admin panel
 
@@ -215,7 +216,7 @@ DEFAULT_SERVICE_FEE=10
 
 ## Real-time order alerts
 
-Restaurant order alerts use Laravel Reverb on a private, restaurant-scoped channel. Add these values to `.env` (use unique app credentials outside local development):
+Restaurant new-order alerts and customer order-status tracking use Laravel Reverb on private, role-authorized channels. Add these values to `.env` (use unique app credentials outside local development):
 
 ```env
 BROADCAST_CONNECTION=reverb
@@ -332,6 +333,7 @@ tests/Feature/
 - Nearby-rider ordering uses straight-line Haversine distance from the restaurant, not road distance or ETA.
 - Administrator refunds currently update FoodJett's payment ledger and status history only; PayMongo API refunds still need a gateway-specific integration and reconciliation flow.
 - Administrator cancellation does not automatically refund a paid order or notify participants; those workflows should be added once notification and refund policy are defined.
+- Customer cancellation after the rider search reaches `customer_notified` records a full refund in FoodJett's payment ledger. PayMongo API refund execution and reconciliation are still required before this represents a completed external refund.
 - Transaction date filters use `payments.paid_at`; pending payments without a paid timestamp are omitted when a date range is active.
 - Restaurant payout gross sales are the sum of delivered-order food subtotals. Delivery fees, service fees, and tips are excluded; stored `commission_amount` values are deducted to calculate net payouts.
 - Rider payout periods use each earning's related order `delivered_at` timestamp. Payout cadence is administrator-selected rather than fixed to weekly or biweekly.
@@ -339,6 +341,7 @@ tests/Feature/
 - Marking a payout paid does not yet initiate a bank/e-wallet transfer or notify its recipient.
 - The default commission setting applies to newly registered restaurants. Existing restaurants retain their individually stored commission rate.
 - Rider search and escalation settings are ready for runtime use, but the project does not yet contain the queue job that widens the search, adds incentives, alerts admins/customers, or auto-cancels orders. That worker should read values through `PlatformSetting::get()`, `getInt()`, or `getFloat()` when it is implemented.
+- Existing rider/admin order mutations now use `TransitionOrderStatus`, which records history and broadcasts after commit. Future restaurant workflow and escalation-job status changes must use the same action; the escalation job should update `RiderPoolOffer` as an Eloquent model so its customer-notification observer runs.
 - Delivery zones are edited as center latitude/longitude plus radius and stored as circle JSON. Editing a legacy GeoJSON polygon converts its bounding area to an approximate circle.
 - Checkout/address validation against active delivery zones is not implemented yet. Zone changes therefore do not currently affect in-progress checkouts.
 - Creating or changing an administrator account does not send an automatic notification. Credentials and status changes must be communicated separately.

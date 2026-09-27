@@ -11,6 +11,7 @@ use App\Http\Controllers\Auth\RegisteredRestaurantController;
 use App\Http\Controllers\Auth\RegisteredRiderController;
 use App\Http\Controllers\CheckoutCallbackController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\Customer\OrderController as CustomerOrderController;
 use App\Http\Controllers\CustomerDashboardController;
 use App\Http\Controllers\DashboardRedirectController;
 use App\Http\Controllers\OrderPlacedController;
@@ -207,6 +208,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         });
     });
 
+    Route::get('customer/orders/{order}/track', [CustomerOrderController::class, 'show'])
+        ->middleware('role:customer,admin')
+        ->name('customer.orders.track');
+
     Route::prefix('customer')->name('customer.')->middleware('role:customer')->group(function () {
         Route::get('dashboard', CustomerDashboardController::class)->name('dashboard');
         Route::get('checkout/paymongo/{pendingCheckout}/callback', CheckoutCallbackController::class)
@@ -217,6 +222,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->middleware('throttle:10,1')
             ->name('checkout.store');
         Route::get('orders/{order}/placed', OrderPlacedController::class)->name('orders.placed');
+        Route::patch('orders/{order}/cancel', [CustomerOrderController::class, 'cancel'])
+            ->name('orders.cancel');
     });
 });
 

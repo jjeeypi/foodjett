@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Orders\TransitionOrderStatus;
 use App\Actions\Payments\RecordPaymentStatus;
 use App\Http\Requests\CompleteRiderOrderRequest;
 use App\Models\Order;
-use App\Models\OrderStatusHistory;
 use App\Models\Payment;
 use App\Models\Rider;
 use Illuminate\Http\RedirectResponse;
@@ -49,7 +49,7 @@ class RiderOrderController extends Controller
         ]);
     }
 
-    public function accept(Order $order): RedirectResponse
+    public function accept(Order $order, TransitionOrderStatus $transition): RedirectResponse
     {
         $rider = request()->user()?->rider;
         abort_unless($rider !== null, 403);
@@ -62,7 +62,7 @@ class RiderOrderController extends Controller
 
         Gate::authorize('updateAsRider', $order);
 
-        DB::transaction(function () use ($order, $rider): void {
+        DB::transaction(function () use ($order, $rider, $transition): void {
             $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
             $lockedRider = Rider::query()->lockForUpdate()->findOrFail($rider->id);
 
@@ -76,18 +76,16 @@ class RiderOrderController extends Controller
                 ]);
             }
 
-            $lockedOrder->update([
-                'rider_id' => $lockedRider->id,
-                'status' => 'rider_assigned',
-                'rider_assigned_at' => now(),
-            ]);
-
-            OrderStatusHistory::create([
-                'order_id' => $lockedOrder->id,
-                'status' => 'rider_assigned',
-                'changed_by' => 'rider',
-                'note' => 'Rider accepted the delivery.',
-            ]);
+            $transition->handle(
+                $lockedOrder,
+                'rider_assigned',
+                'rider',
+                'Rider accepted the delivery.',
+                [
+                    'rider_id' => $lockedRider->id,
+                    'rider_assigned_at' => now(),
+                ],
+            );
         });
 
         return back()->with('success', 'Order accepted.');
@@ -97,8 +95,9 @@ class RiderOrderController extends Controller
         CompleteRiderOrderRequest $request,
         Order $order,
         RecordPaymentStatus $paymentStatus,
+        TransitionOrderStatus $transition,
     ): RedirectResponse {
-        DB::transaction(function () use ($request, $order, $paymentStatus): void {
+        DB::transaction(function () use ($request, $order, $paymentStatus, $transition): void {
             $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
             $rider = Rider::query()->lockForUpdate()->findOrFail((int) $lockedOrder->rider_id);
 
@@ -109,18 +108,16 @@ class RiderOrderController extends Controller
             }
 
             if ($request->outcome() === 'failed_delivery') {
-                $lockedOrder->update([
-                    'status' => 'failed_delivery',
-                    'cancellation_reason' => $request->cancellationReason(),
-                    'cancelled_by' => 'rider',
-                ]);
-
-                OrderStatusHistory::create([
-                    'order_id' => $lockedOrder->id,
-                    'status' => 'failed_delivery',
-                    'changed_by' => 'rider',
-                    'note' => $request->cancellationReason(),
-                ]);
+                $transition->handle(
+                    $lockedOrder,
+                    'failed_delivery',
+                    'rider',
+                    $request->cancellationReason(),
+                    [
+                        'cancellation_reason' => $request->cancellationReason(),
+                        'cancelled_by' => 'rider',
+                    ],
+                );
 
                 return;
             }
@@ -131,17 +128,13 @@ class RiderOrderController extends Controller
                 ]);
             }
 
-            $lockedOrder->update([
-                'status' => 'delivered',
-                'delivered_at' => now(),
-            ]);
-
-            OrderStatusHistory::create([
-                'order_id' => $lockedOrder->id,
-                'status' => 'delivered',
-                'changed_by' => 'rider',
-                'note' => $lockedOrder->payment_method === 'cod' ? 'Cash collected on delivery.' : 'Order delivered.',
-            ]);
+            $transition->handle(
+                $lockedOrder,
+                'delivered',
+                'rider',
+                $lockedOrder->payment_method === 'cod' ? 'Cash collected on delivery.' : 'Order delivered.',
+                ['delivered_at' => now()],
+            );
 
             if ($lockedOrder->payment_method === 'cod') {
                 $payment = Payment::query()
