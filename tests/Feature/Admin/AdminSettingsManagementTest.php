@@ -25,7 +25,7 @@ class AdminSettingsManagementTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('admin/settings/platform')
-                ->has('settings', 11));
+                ->has('settings', 12));
 
         // Prime the accessor cache to prove an update invalidates it.
         $this->assertSame(15.0, PlatformSetting::getFloat('default_commission_rate', 0));

@@ -24,6 +24,7 @@ declare module '@inertiajs/core' {
                 approval_status: 'pending' | 'approved' | 'rejected';
             } | null;
             customerContext: {
+                unread_messages: number;
                 active_order: {
                     id: number;
                     order_number: string;

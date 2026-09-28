@@ -98,6 +98,12 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
         return $this->hasMany(AuditLog::class);
     }
 
+    /** @return HasMany<Message, $this> */
+    public function sentMessages(): HasMany
+    {
+        return $this->hasMany(Message::class, 'sender_user_id');
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === 'admin';

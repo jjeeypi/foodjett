@@ -9,10 +9,13 @@ use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use App\Models\PlatformSetting;
 use App\Models\RiderPoolOffer;
+use App\Services\ConversationService;
 use Illuminate\Support\Facades\DB;
 
 class TransitionOrderStatus
 {
+    public function __construct(private readonly ConversationService $conversations) {}
+
     /**
      * @param  array<string, mixed>  $attributes
      */
@@ -77,6 +80,7 @@ class TransitionOrderStatus
             }
 
             $order->refresh();
+            $this->conversations->handleStatusChange($order, $previousStatus);
             OrderStatusUpdated::dispatch($order, $notice);
 
             if ($status === 'finding_rider' && $previousStatus !== 'finding_rider') {

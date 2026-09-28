@@ -1,4 +1,5 @@
 import { Link, router, usePage } from '@inertiajs/react';
+import { useEcho } from '@laravel/echo-react';
 import {
     CircleHelp,
     ClipboardList,
@@ -48,6 +49,11 @@ type NavItem = {
     cart?: boolean;
 };
 
+type UnreadMessagesUpdate = {
+    user_id: number;
+    unread_count: number;
+};
+
 const navItems: NavItem[] = [
     { label: 'Home', href: '/customer', icon: Home },
     { label: 'Foods', href: '/customer/foods', icon: Utensils },
@@ -64,6 +70,9 @@ function CustomerShell({ children }: { children: ReactNode }) {
     const [search, setSearch] = useState('');
     const [mobileOpen, setMobileOpen] = useState(false);
     const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+    const [unreadMessages, setUnreadMessages] = useState(
+        customerContext?.unread_messages ?? 0,
+    );
     const currentPath = page.url.split('?')[0].replace(/\/$/, '') || '/';
 
     useEffect(() => {
@@ -76,6 +85,21 @@ function CustomerShell({ children }: { children: ReactNode }) {
             clearCart();
         }
     }, [clearCart, page.props.checkoutCompleted]);
+
+    useEffect(() => {
+        setUnreadMessages(customerContext?.unread_messages ?? 0);
+    }, [customerContext?.unread_messages]);
+
+    useEcho<UnreadMessagesUpdate>(
+        `user.${auth.user.id}.notifications`,
+        '.messages.unread.updated',
+        (update) => {
+            if (update.user_id === auth.user.id) {
+                setUnreadMessages(update.unread_count);
+            }
+        },
+        [auth.user.id],
+    );
 
     const isActive = (href?: string) => {
         if (!href) return false;
@@ -146,6 +170,11 @@ function CustomerShell({ children }: { children: ReactNode }) {
             >
                 <Icon className="size-4" />
                 {item.label}
+                {item.label === 'Messages' && unreadMessages > 0 && (
+                    <span className="bg-primary text-primary-foreground ml-auto inline-flex min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] leading-5">
+                        {unreadMessages > 99 ? '99+' : unreadMessages}
+                    </span>
+                )}
             </Link>
         );
     };

@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Customer;
 use App\Actions\Orders\TransitionOrderStatus;
 use App\Actions\Payments\RecordPaymentStatus;
 use App\Http\Controllers\Controller;
+use App\Models\Conversation;
 use App\Models\Order;
 use App\Models\OrderReport;
 use App\Models\OrderStatusHistory;
 use App\Models\Payment;
 use App\Models\RestaurantReview;
 use App\Models\RiderReview;
+use App\Services\ConversationService;
 use App\Services\CustomerCatalog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -72,9 +74,10 @@ class OrderController extends Controller
         ]);
     }
 
-    public function show(Order $order): Response
+    public function show(Order $order, ConversationService $conversationService): Response
     {
         Gate::authorize('view', $order);
+        $conversationService->syncForOrder($order);
 
         $order->load([
             'restaurant:id,name,logo_path,latitude,longitude',
@@ -88,12 +91,17 @@ class OrderController extends Controller
             'restaurantReview',
             'riderReview',
             'statusHistory' => fn ($query) => $query->oldest('created_at'),
+            'conversations:id,order_id,type',
         ]);
 
         $isActive = ! $order->isTerminal();
         $isCustomerViewer = request()->user()?->isCustomer() === true;
         $hasAllReviews = $order->restaurantReview !== null
             && ($order->rider_id === null || $order->riderReview !== null);
+        $restaurantConversation = $order->conversations
+            ->firstWhere('type', Conversation::CUSTOMER_RESTAURANT);
+        $riderConversation = $order->conversations
+            ->firstWhere('type', Conversation::CUSTOMER_RIDER);
 
         return Inertia::render('customer/orders/show', [
             'order' => [
@@ -107,6 +115,11 @@ class OrderController extends Controller
                     'logo_url' => $this->publicUrl($order->restaurant->logo_path),
                     'latitude' => (float) $order->restaurant->latitude,
                     'longitude' => (float) $order->restaurant->longitude,
+                    'message_url' => ! $isCustomerViewer || $restaurantConversation === null ? null : route(
+                        'customer.messages.show',
+                        $restaurantConversation,
+                        absolute: false,
+                    ),
                 ],
                 'delivery_address' => [
                     'label' => $order->deliveryAddress->label,
@@ -161,10 +174,11 @@ class OrderController extends Controller
                     'current_latitude' => $order->rider->current_latitude,
                     'current_longitude' => $order->rider->current_longitude,
                     'location_updated_at' => $this->dateTime($order->rider->last_location_at),
-                    'message_url' => route('customer.messages.index', [
-                        'order_id' => $order->id,
-                        'rider_id' => $order->rider->id,
-                    ], absolute: false),
+                    'message_url' => ! $isCustomerViewer || $riderConversation === null ? null : route(
+                        'customer.messages.show',
+                        $riderConversation,
+                        absolute: false,
+                    ),
                 ],
                 'escalation_stage' => $order->poolOffer?->escalation_stage,
                 'cancellation_reason' => $order->cancellation_reason,

@@ -2,6 +2,7 @@
 
 namespace App\Events;
 
+use App\Models\Conversation;
 use App\Models\Order;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
@@ -37,10 +38,12 @@ class OrderStatusUpdated implements ShouldBroadcast, ShouldDispatchAfterCommit
      *     current_latitude: float|null,
      *     current_longitude: float|null,
      *     location_updated_at: string|null,
-     *     message_url: string
+     *     message_url: string|null
      * }|null
      */
     public readonly ?array $rider;
+
+    public readonly ?string $restaurant_message_url;
 
     public readonly ?string $escalation_stage;
 
@@ -60,6 +63,12 @@ class OrderStatusUpdated implements ShouldBroadcast, ShouldDispatchAfterCommit
         ]);
 
         $rider = $order->rider;
+        $riderConversationId = $rider === null ? null : $order->conversations()
+            ->where('type', Conversation::CUSTOMER_RIDER)
+            ->value('id');
+        $restaurantConversationId = $order->conversations()
+            ->where('type', Conversation::CUSTOMER_RESTAURANT)
+            ->value('id');
 
         $this->event_id = Str::uuid()->toString();
         $this->id = $order->id;
@@ -81,11 +90,17 @@ class OrderStatusUpdated implements ShouldBroadcast, ShouldDispatchAfterCommit
             'location_updated_at' => $rider->last_location_at === null
                 ? null
                 : Carbon::parse($rider->last_location_at)->toIso8601String(),
-            'message_url' => route('customer.messages.index', [
-                'order_id' => $order->id,
-                'rider_id' => $rider->id,
-            ], absolute: false),
+            'message_url' => $riderConversationId === null ? null : route(
+                'customer.messages.show',
+                $riderConversationId,
+                absolute: false,
+            ),
         ];
+        $this->restaurant_message_url = $restaurantConversationId === null ? null : route(
+            'customer.messages.show',
+            $restaurantConversationId,
+            absolute: false,
+        );
         $this->escalation_stage = $order->poolOffer?->escalation_stage;
         $this->notice = $notice;
         $this->cancellation_reason = $order->cancellation_reason;
@@ -115,6 +130,7 @@ class OrderStatusUpdated implements ShouldBroadcast, ShouldDispatchAfterCommit
             'estimated_ready_at' => $this->estimated_ready_at,
             'prep_extended_minutes' => $this->prep_extended_minutes,
             'rider' => $this->rider,
+            'restaurant_message_url' => $this->restaurant_message_url,
             'escalation_stage' => $this->escalation_stage,
             'notice' => $this->notice,
             'cancellation_reason' => $this->cancellation_reason,

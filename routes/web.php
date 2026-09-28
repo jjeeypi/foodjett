@@ -13,6 +13,7 @@ use App\Http\Controllers\CheckoutCallbackController;
 use App\Http\Controllers\Customer\CheckoutController as CustomerCheckoutController;
 use App\Http\Controllers\Customer\FoodController as CustomerFoodController;
 use App\Http\Controllers\Customer\HomeController as CustomerHomeController;
+use App\Http\Controllers\Customer\MessageController as CustomerMessageController;
 use App\Http\Controllers\Customer\OrderController as CustomerOrderController;
 use App\Http\Controllers\Customer\RestaurantController as CustomerRestaurantController;
 use App\Http\Controllers\Customer\SearchController as CustomerSearchController;
@@ -227,8 +228,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('foods', [CustomerFoodController::class, 'index'])->name('foods.index');
         Route::get('search', [CustomerSearchController::class, 'index'])->name('search.index');
         Route::redirect('dashboard', '/customer')->name('dashboard');
-        Route::inertia('messages', 'customer/coming-soon', ['title' => 'Messages'])
+        Route::get('messages', [CustomerMessageController::class, 'index'])
             ->name('messages.index');
+        Route::get('messages/{conversation}', [CustomerMessageController::class, 'show'])
+            ->name('messages.show');
+        Route::post('messages/{conversation}', [CustomerMessageController::class, 'store'])
+            ->middleware('throttle:20,1')
+            ->name('messages.store');
+        Route::patch('messages/{conversation}/read', [CustomerMessageController::class, 'markRead'])
+            ->middleware('throttle:60,1')
+            ->name('messages.read');
         Route::get('orders', [CustomerOrderController::class, 'index'])->name('orders.index');
         Route::inertia('addresses', 'customer/coming-soon', ['title' => 'Addresses'])
             ->name('addresses.index');

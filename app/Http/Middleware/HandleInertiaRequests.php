@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\Order;
 use App\Models\Restaurant;
 use App\Models\Rider;
+use App\Services\ConversationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Middleware;
@@ -86,6 +87,7 @@ class HandleInertiaRequests extends Middleware
                     ->first(['id', 'order_number', 'status']);
 
                 return [
+                    'unread_messages' => app(ConversationService::class)->unreadCountFor($request->user()),
                     'active_order' => $activeOrder === null ? null : [
                         'id' => $activeOrder->id,
                         'order_number' => $activeOrder->order_number,

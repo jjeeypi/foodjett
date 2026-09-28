@@ -56,7 +56,7 @@ type Rider = {
     current_latitude: number | null;
     current_longitude: number | null;
     location_updated_at: string | null;
-    message_url: string;
+    message_url: string | null;
 };
 
 type OrderItem = {
@@ -96,6 +96,7 @@ type OrderDetail = {
         logo_url: string | null;
         latitude: number;
         longitude: number;
+        message_url: string | null;
     };
     delivery_address: {
         label: string;
@@ -145,6 +146,7 @@ type StatusUpdate = {
     estimated_ready_at: string | null;
     prep_extended_minutes: number | null;
     rider: Rider | null;
+    restaurant_message_url: string | null;
     escalation_stage: string | null;
     notice: 'prep_extended' | 'rider_search_delayed' | null;
     cancellation_reason: string | null;
@@ -319,9 +321,20 @@ export default function ShowOrder({
                             {dateTime.format(new Date(currentOrder.placed_at))}
                         </p>
                     </div>
-                    {currentOrder.can_report && (
-                        <ReportProblemDialog orderId={currentOrder.id} />
-                    )}
+                    <div className="flex flex-wrap gap-2">
+                        {currentOrder.restaurant.message_url && (
+                            <Button variant="outline" asChild>
+                                <Link
+                                    href={currentOrder.restaurant.message_url}
+                                >
+                                    <MessageCircle /> Contact restaurant
+                                </Link>
+                            </Button>
+                        )}
+                        {currentOrder.can_report && (
+                            <ReportProblemDialog orderId={currentOrder.id} />
+                        )}
+                    </div>
                 </div>
 
                 {currentOrder.is_active ? (
@@ -404,6 +417,12 @@ function LiveTracking({
                 is_active: !terminalOrderStatuses.has(update.status),
                 estimated_ready_at: update.estimated_ready_at,
                 prep_extended_minutes: update.prep_extended_minutes,
+                restaurant: {
+                    ...order.restaurant,
+                    message_url:
+                        update.restaurant_message_url ??
+                        order.restaurant.message_url,
+                },
                 rider: update.rider ?? order.rider,
                 escalation_stage: update.escalation_stage,
                 cancellation_reason: update.cancellation_reason,
@@ -684,11 +703,13 @@ function RiderCard({ rider }: { rider: Rider }) {
                         </p>
                     </div>
                 </div>
-                <Button variant="outline" className="w-full" asChild>
-                    <Link href={rider.message_url}>
-                        <MessageCircle /> Contact rider
-                    </Link>
-                </Button>
+                {rider.message_url && (
+                    <Button variant="outline" className="w-full" asChild>
+                        <Link href={rider.message_url}>
+                            <MessageCircle /> Contact rider
+                        </Link>
+                    </Button>
+                )}
             </CardContent>
         </Card>
     );
