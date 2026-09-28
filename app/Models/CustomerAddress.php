@@ -38,4 +38,10 @@ class CustomerAddress extends Model
     {
         return $this->hasMany(Order::class);
     }
+
+    /** @return HasMany<PendingCheckout, $this> */
+    public function pendingCheckouts(): HasMany
+    {
+        return $this->hasMany(PendingCheckout::class);
+    }
 }

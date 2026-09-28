@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -41,6 +42,9 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
+
+    /** @var list<string> */
+    protected $appends = ['avatar'];
 
     protected function casts(): array
     {
@@ -132,6 +136,13 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     public function hasRole(string ...$roles): bool
     {
         return in_array($this->role, $roles, true);
+    }
+
+    public function getAvatarAttribute(): ?string
+    {
+        return $this->avatar_path === null
+            ? null
+            : Storage::disk('public')->url($this->avatar_path);
     }
 
     public function redirectPathAfterLogin(): string

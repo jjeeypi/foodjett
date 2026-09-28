@@ -70,6 +70,7 @@ function CustomerShell({ children }: { children: ReactNode }) {
     const [search, setSearch] = useState('');
     const [mobileOpen, setMobileOpen] = useState(false);
     const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+    const [accountOpen, setAccountOpen] = useState(false);
     const [unreadMessages, setUnreadMessages] = useState(
         customerContext?.unread_messages ?? 0,
     );
@@ -272,7 +273,10 @@ function CustomerShell({ children }: { children: ReactNode }) {
                                 )}
                             </Button>
 
-                            <DropdownMenu>
+                            <DropdownMenu
+                                open={accountOpen}
+                                onOpenChange={setAccountOpen}
+                            >
                                 <DropdownMenuTrigger asChild>
                                     <Button
                                         variant="ghost"
@@ -304,18 +308,54 @@ function CustomerShell({ children }: { children: ReactNode }) {
                                     </DropdownMenuLabel>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuGroup>
-                                        <DropdownMenuItem asChild>
-                                            <Link href="/customer/addresses">
+                                        <DropdownMenuItem
+                                            asChild
+                                            className={cn(
+                                                isActive(
+                                                    '/customer/account/addresses',
+                                                ) && 'bg-accent',
+                                            )}
+                                        >
+                                            <Link
+                                                href="/customer/account/addresses"
+                                                onClick={() =>
+                                                    setAccountOpen(false)
+                                                }
+                                            >
                                                 <MapPin /> Addresses
                                             </Link>
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem asChild>
-                                            <Link href="/settings/profile">
+                                        <DropdownMenuItem
+                                            asChild
+                                            className={cn(
+                                                isActive(
+                                                    '/customer/account/profile',
+                                                ) && 'bg-accent',
+                                            )}
+                                        >
+                                            <Link
+                                                href="/customer/account/profile"
+                                                onClick={() =>
+                                                    setAccountOpen(false)
+                                                }
+                                            >
                                                 <Settings /> Edit profile
                                             </Link>
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem asChild>
-                                            <Link href="/customer/support">
+                                        <DropdownMenuItem
+                                            asChild
+                                            className={cn(
+                                                isActive(
+                                                    '/customer/account/support',
+                                                ) && 'bg-accent',
+                                            )}
+                                        >
+                                            <Link
+                                                href="/customer/account/support"
+                                                onClick={() =>
+                                                    setAccountOpen(false)
+                                                }
+                                            >
                                                 <CircleHelp /> Contact support
                                             </Link>
                                         </DropdownMenuItem>
@@ -328,6 +368,7 @@ function CustomerShell({ children }: { children: ReactNode }) {
                                             as="button"
                                             className="w-full"
                                             onClick={() => {
+                                                setAccountOpen(false);
                                                 clearCart();
                                                 router.flushAll();
                                             }}
@@ -363,6 +404,19 @@ function CustomerShell({ children }: { children: ReactNode }) {
             </div>
 
             <main>{children}</main>
+            <footer className="border-border bg-muted/20 border-t">
+                <div className="text-muted-foreground mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-6 text-sm sm:flex-row md:px-6">
+                    <p>
+                        © {new Date().getFullYear()} {name}
+                    </p>
+                    <Link
+                        href="/customer/account/support"
+                        className="hover:text-foreground inline-flex items-center gap-2 font-medium"
+                    >
+                        <CircleHelp className="size-4" /> Contact Support
+                    </Link>
+                </div>
+            </footer>
             <CartPanel />
         </div>
     );

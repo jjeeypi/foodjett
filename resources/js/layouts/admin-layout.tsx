@@ -3,6 +3,7 @@ import {
     Banknote,
     Bike,
     CreditCard,
+    CircleHelp,
     HandCoins,
     LayoutDashboard,
     LogOut,
@@ -167,7 +168,14 @@ const navSections: AdminNavSection[] = [
     },
     {
         label: 'Quality',
-        items: [{ title: 'Reviews', href: '/admin/reviews', icon: Star }],
+        items: [
+            { title: 'Reviews', href: '/admin/reviews', icon: Star },
+            {
+                title: 'Support tickets',
+                href: '/admin/support',
+                icon: CircleHelp,
+            },
+        ],
     },
     {
         label: 'Settings',

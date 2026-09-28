@@ -6,17 +6,21 @@ use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Admin\RestaurantController as AdminRestaurantController;
 use App\Http\Controllers\Admin\RiderController as AdminRiderController;
 use App\Http\Controllers\Admin\SettingController as AdminSettingController;
+use App\Http\Controllers\Admin\SupportController as AdminSupportController;
 use App\Http\Controllers\AdminRemittanceController;
 use App\Http\Controllers\Auth\RegisteredRestaurantController;
 use App\Http\Controllers\Auth\RegisteredRiderController;
 use App\Http\Controllers\CheckoutCallbackController;
+use App\Http\Controllers\Customer\AddressController as CustomerAddressController;
 use App\Http\Controllers\Customer\CheckoutController as CustomerCheckoutController;
 use App\Http\Controllers\Customer\FoodController as CustomerFoodController;
 use App\Http\Controllers\Customer\HomeController as CustomerHomeController;
 use App\Http\Controllers\Customer\MessageController as CustomerMessageController;
 use App\Http\Controllers\Customer\OrderController as CustomerOrderController;
+use App\Http\Controllers\Customer\ProfileController as CustomerProfileController;
 use App\Http\Controllers\Customer\RestaurantController as CustomerRestaurantController;
 use App\Http\Controllers\Customer\SearchController as CustomerSearchController;
+use App\Http\Controllers\Customer\SupportController as CustomerSupportController;
 use App\Http\Controllers\DashboardRedirectController;
 use App\Http\Controllers\PayMongoWebhookController;
 use App\Http\Controllers\PendingApprovalController;
@@ -126,6 +130,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::inertia('categories', 'admin/coming-soon', ['title' => 'Categories'])->name('categories.index');
         Route::inertia('promotions', 'admin/coming-soon', ['title' => 'Promotions'])->name('promotions.index');
         Route::inertia('reviews', 'admin/coming-soon', ['title' => 'Reviews'])->name('reviews.index');
+        Route::get('support', [AdminSupportController::class, 'index'])->name('support.index');
+        Route::patch('support/{ticket}', [AdminSupportController::class, 'updateStatus'])
+            ->name('support.update');
         Route::get('settings/platform', [AdminSettingController::class, 'platform'])->name('settings.platform');
         Route::patch('settings/platform', [AdminSettingController::class, 'updatePlatform'])
             ->name('settings.platform.update');
@@ -239,10 +246,31 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->middleware('throttle:60,1')
             ->name('messages.read');
         Route::get('orders', [CustomerOrderController::class, 'index'])->name('orders.index');
-        Route::inertia('addresses', 'customer/coming-soon', ['title' => 'Addresses'])
-            ->name('addresses.index');
-        Route::inertia('support', 'customer/coming-soon', ['title' => 'Contact support'])
-            ->name('support.index');
+        Route::redirect('addresses', '/customer/account/addresses');
+        Route::redirect('support', '/customer/account/support');
+        Route::get('account/addresses', [CustomerAddressController::class, 'index'])
+            ->name('account.addresses.index');
+        Route::post('account/addresses', [CustomerAddressController::class, 'store'])
+            ->name('account.addresses.store');
+        Route::patch('account/addresses/{address}', [CustomerAddressController::class, 'update'])
+            ->name('account.addresses.update');
+        Route::patch('account/addresses/{address}/default', [CustomerAddressController::class, 'setDefault'])
+            ->name('account.addresses.default');
+        Route::delete('account/addresses/{address}', [CustomerAddressController::class, 'destroy'])
+            ->name('account.addresses.destroy');
+        Route::get('account/profile', [CustomerProfileController::class, 'edit'])
+            ->name('account.profile.edit');
+        Route::patch('account/profile', [CustomerProfileController::class, 'update'])
+            ->name('account.profile.update');
+        Route::delete('account/profile', [CustomerProfileController::class, 'destroy'])
+            ->name('account.profile.destroy');
+        Route::get('account/support', [CustomerSupportController::class, 'index'])
+            ->name('account.support.index');
+        Route::post('account/support', [CustomerSupportController::class, 'store'])
+            ->middleware('throttle:5,1')
+            ->name('account.support.store');
+        Route::get('account/support/{ticket}', [CustomerSupportController::class, 'show'])
+            ->name('account.support.show');
         Route::get('checkout/paymongo/{pendingCheckout}/callback', CheckoutCallbackController::class)
             ->middleware('signed')
             ->name('checkout.callback');

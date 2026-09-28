@@ -6,18 +6,19 @@ use App\Actions\Orders\BuildCheckoutData;
 use App\Actions\Orders\CreateOrderFromCart;
 use App\Data\OrderCheckoutData;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Customer\SaveAddressRequest;
 use App\Http\Requests\StoreCheckoutRequest;
 use App\Models\CustomerAddress;
 use App\Models\Order;
 use App\Models\PendingCheckout;
 use App\Models\Restaurant;
+use App\Services\CustomerAddressService;
 use App\Services\PayMongo\PayMongoClient;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -177,28 +178,20 @@ class CheckoutController extends Controller
         return Inertia::location($session['checkout_url']);
     }
 
-    public function storeAddress(Request $request): JsonResponse
-    {
+    public function storeAddress(
+        SaveAddressRequest $request,
+        CustomerAddressService $addresses,
+    ): JsonResponse {
         $customer = $request->user()?->customer;
         abort_unless($customer !== null, 403);
+        Gate::authorize('create', CustomerAddress::class);
 
-        $validated = $request->validate([
-            'label' => ['required', 'string', 'max:50'],
-            'address_line' => ['required', 'string', 'max:255'],
-            'landmark' => ['nullable', 'string', 'max:255'],
-            'delivery_instructions' => ['nullable', 'string', 'max:500'],
-            'latitude' => ['required', 'numeric', 'between:-90,90'],
-            'longitude' => ['required', 'numeric', 'between:-180,180'],
-        ]);
+        $address = $addresses->create($customer, $request->validated());
 
-        $address = DB::transaction(function () use ($customer, $validated): CustomerAddress {
-            return $customer->addresses()->create([
-                ...$validated,
-                'is_default' => ! $customer->addresses()->exists(),
-            ]);
-        });
-
-        return response()->json(['address' => $this->addressData($address)], 201);
+        return response()->json([
+            'address' => $addresses->data($address),
+            'outside_delivery_zone' => $addresses->isOutsideDeliveryZones($address),
+        ], 201);
     }
 
     private function checkoutData(

@@ -9,7 +9,9 @@ import {
     TicketPercent,
 } from 'lucide-react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import AddressMapPicker from '@/components/customer/address-map-picker';
+import AddressForm, {
+    type AddressFormValues,
+} from '@/components/customer/address-form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -24,6 +26,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCart, type CartItem } from '@/contexts/cart-context';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 type Restaurant = {
     id: number;
@@ -141,7 +144,7 @@ export default function Checkout({
     );
     const [addressSaving, setAddressSaving] = useState(false);
     const [addressErrors, setAddressErrors] = useState<string[]>([]);
-    const [newAddress, setNewAddress] = useState({
+    const [newAddress, setNewAddress] = useState<AddressFormValues>({
         label: 'Home',
         address_line: '',
         landmark: '',
@@ -283,10 +286,19 @@ export default function Checkout({
                 return;
             }
 
-            const address = (body as { address: Address }).address;
+            const result = body as {
+                address: Address;
+                outside_delivery_zone: boolean;
+            };
+            const address = result.address;
             setAddresses((current) => [...current, address]);
             setAddressId(address.id);
             setShowNewAddress(false);
+            if (result.outside_delivery_zone) {
+                toast.warning(
+                    'Address saved, but it is outside the current delivery zones.',
+                );
+            }
         } catch {
             setAddressErrors([
                 'Could not save this address. Check your connection and try again.',
@@ -448,133 +460,23 @@ export default function Checkout({
 
                                 {showNewAddress && (
                                     <div className="space-y-4 rounded-xl border p-4">
-                                        <div className="grid gap-4 sm:grid-cols-2">
-                                            <div className="space-y-2">
-                                                <Label htmlFor="address-label">
-                                                    Label
-                                                </Label>
-                                                <Input
-                                                    id="address-label"
-                                                    value={newAddress.label}
-                                                    onChange={(event) =>
-                                                        setNewAddress(
-                                                            (current) => ({
-                                                                ...current,
-                                                                label: event
-                                                                    .target
-                                                                    .value,
-                                                            }),
-                                                        )
-                                                    }
-                                                    placeholder="Home, School, Work"
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label htmlFor="landmark">
-                                                    Landmark (optional)
-                                                </Label>
-                                                <Input
-                                                    id="landmark"
-                                                    value={newAddress.landmark}
-                                                    onChange={(event) =>
-                                                        setNewAddress(
-                                                            (current) => ({
-                                                                ...current,
-                                                                landmark:
-                                                                    event.target
-                                                                        .value,
-                                                            }),
-                                                        )
-                                                    }
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="address-line">
-                                                Full address
-                                            </Label>
-                                            <Input
-                                                id="address-line"
-                                                value={newAddress.address_line}
-                                                onChange={(event) =>
-                                                    setNewAddress(
-                                                        (current) => ({
-                                                            ...current,
-                                                            address_line:
-                                                                event.target
-                                                                    .value,
-                                                        }),
-                                                    )
-                                                }
-                                                required
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="delivery-instructions">
-                                                Delivery instructions (optional)
-                                            </Label>
-                                            <textarea
-                                                id="delivery-instructions"
-                                                className="border-input bg-background min-h-20 w-full rounded-md border px-3 py-2 text-sm"
-                                                value={
-                                                    newAddress.delivery_instructions
-                                                }
-                                                onChange={(event) =>
-                                                    setNewAddress(
-                                                        (current) => ({
-                                                            ...current,
-                                                            delivery_instructions:
-                                                                event.target
-                                                                    .value,
-                                                        }),
-                                                    )
-                                                }
-                                            />
-                                        </div>
-                                        <AddressMapPicker
+                                        <AddressForm
                                             value={newAddress}
                                             fallback={restaurant}
-                                            onChange={(point) =>
-                                                setNewAddress((current) => ({
-                                                    ...current,
-                                                    ...point,
-                                                }))
+                                            onChange={setNewAddress}
+                                            onSubmit={() => void saveAddress()}
+                                            onCancel={
+                                                addresses.length > 0
+                                                    ? () =>
+                                                          setShowNewAddress(
+                                                              false,
+                                                          )
+                                                    : undefined
                                             }
+                                            errors={addressErrors}
+                                            processing={addressSaving}
+                                            idPrefix="checkout-address"
                                         />
-                                        {addressErrors.length > 0 && (
-                                            <ErrorList
-                                                messages={addressErrors}
-                                            />
-                                        )}
-                                        <div className="flex gap-2">
-                                            <Button
-                                                type="button"
-                                                onClick={() =>
-                                                    void saveAddress()
-                                                }
-                                                disabled={
-                                                    addressSaving ||
-                                                    !newAddress.label.trim() ||
-                                                    !newAddress.address_line.trim()
-                                                }
-                                            >
-                                                {addressSaving && (
-                                                    <LoaderCircle className="animate-spin" />
-                                                )}
-                                                Save address
-                                            </Button>
-                                            {addresses.length > 0 && (
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    onClick={() =>
-                                                        setShowNewAddress(false)
-                                                    }
-                                                >
-                                                    Cancel
-                                                </Button>
-                                            )}
-                                        </div>
                                     </div>
                                 )}
                             </CardContent>

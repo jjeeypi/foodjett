@@ -181,7 +181,7 @@ export default function CustomerHome({
                             </CardHeader>
                             <CardContent>
                                 <Button asChild>
-                                    <Link href="/customer/addresses">
+                                    <Link href="/customer/account/addresses">
                                         Add an address
                                     </Link>
                                 </Button>
