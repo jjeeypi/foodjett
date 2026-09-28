@@ -50,7 +50,7 @@ class Order extends Model
         'placed_at', 'accepted_at', 'estimated_prep_minutes', 'estimated_ready_at',
         'prep_extended_minutes', 'ready_at', 'rider_search_started_at', 'rider_assigned_at',
         'rider_arrived_restaurant_at', 'picked_up_at', 'delivered_at',
-        'pickup_code', 'proof_of_delivery_path',
+        'pickup_code', 'proof_of_delivery_path', 'checkout_token',
     ];
 
     protected function casts(): array

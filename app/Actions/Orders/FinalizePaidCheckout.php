@@ -24,6 +24,7 @@ class FinalizePaidCheckout
                 OrderCheckoutData::fromArray($lockedCheckout->checkoutPayload()),
                 'paid',
                 $transactionReference,
+                $lockedCheckout->idempotency_token ?? $lockedCheckout->id,
             );
 
             $lockedCheckout->forceFill([

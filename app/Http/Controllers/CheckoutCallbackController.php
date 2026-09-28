@@ -26,7 +26,7 @@ class CheckoutCallbackController extends Controller
         }
 
         if ($pendingCheckout->paymongo_session_id === null) {
-            return $this->failure('The payment session could not be found. No order was created.');
+            return $this->failure($pendingCheckout, 'The payment session could not be found. No order was created.');
         }
 
         try {
@@ -35,7 +35,10 @@ class CheckoutCallbackController extends Controller
         } catch (Throwable $exception) {
             report($exception);
 
-            return $this->failure('We could not verify the payment yet. No order was created; please try this callback again.');
+            return $this->failure(
+                $pendingCheckout,
+                'We could not verify the payment yet. No order was created; please try this callback again.',
+            );
         }
 
         if ($paymentReference === null) {
@@ -43,7 +46,7 @@ class CheckoutCallbackController extends Controller
                 'status' => request()->query('outcome') === 'cancel' ? 'cancelled' : 'failed',
             ]);
 
-            return $this->failure('Payment did not go through. No order was created.');
+            return $this->failure($pendingCheckout, 'Payment did not go through. No order was created.');
         }
 
         $order = $finalize->handle($pendingCheckout, $paymentReference);
@@ -53,22 +56,20 @@ class CheckoutCallbackController extends Controller
 
     private function success(?Order $order, float $totalAmount): Response
     {
-        return Inertia::render('customer/payment-result', [
-            'success' => true,
-            'title' => 'Payment Successful — thank you for your order!',
-            'message' => 'Your payment was verified and your order has been placed.',
+        session()->flash('checkoutCompleted', true);
+
+        return Inertia::render('customer/checkout/success', [
             'orderNumber' => $order?->order_number,
             'orderId' => $order?->id,
             'totalAmount' => $totalAmount,
         ]);
     }
 
-    private function failure(string $message): Response
+    private function failure(PendingCheckout $checkout, string $message): Response
     {
-        return Inertia::render('customer/payment-result', [
-            'success' => false,
-            'title' => 'Payment didn’t go through',
+        return Inertia::render('customer/checkout/failed', [
             'message' => $message,
+            'retryUrl' => route('customer.checkout.show', $checkout->restaurant_id, absolute: false),
         ]);
     }
 }

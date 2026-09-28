@@ -5,15 +5,18 @@ namespace Tests\Feature\Payments;
 use App\Events\OrderPlaced;
 use App\Models\Customer;
 use App\Models\CustomerAddress;
+use App\Models\DeliveryZone;
 use App\Models\MenuCategory;
 use App\Models\MenuItem;
 use App\Models\Order;
 use App\Models\PendingCheckout;
+use App\Models\PlatformSetting;
 use App\Models\Restaurant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -30,6 +33,14 @@ class CheckoutPaymentTest extends TestCase
         config()->set('services.paymongo.base_url', 'https://api.paymongo.com');
         config()->set('orders.delivery_fee', 50);
         config()->set('orders.service_fee', 10);
+        PlatformSetting::query()->updateOrCreate(
+            ['key' => 'delivery_base_fee'],
+            ['value' => '50', 'description' => 'Test base fee'],
+        );
+        PlatformSetting::query()->updateOrCreate(
+            ['key' => 'delivery_fee_per_km'],
+            ['value' => '0', 'description' => 'Test distance fee'],
+        );
     }
 
     public function test_cod_checkout_creates_order_and_pending_payment_immediately(): void
@@ -43,7 +54,7 @@ class CheckoutPaymentTest extends TestCase
         );
 
         $order = Order::query()->sole();
-        $response->assertRedirect(route('customer.orders.placed', $order));
+        $response->assertRedirect(route('customer.orders.track', $order));
         $this->assertSame('placed', $order->status);
         $this->assertSame('260.00', $order->total_amount);
         $this->assertDatabaseHas('payments', [
@@ -118,8 +129,9 @@ class CheckoutPaymentTest extends TestCase
             ->get($callbackUrl)
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->component('customer/payment-result')
-                ->where('success', true));
+                ->component('customer/checkout/success')
+                ->where('orderId', fn ($id): bool => (int) $id > 0)
+                ->where('checkoutCompleted', true));
 
         $this->assertDatabaseCount('orders', 1);
         $this->assertDatabaseHas('payments', [
@@ -175,8 +187,7 @@ class CheckoutPaymentTest extends TestCase
             ->get($callbackUrl)
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->component('customer/payment-result')
-                ->where('success', false));
+                ->component('customer/checkout/failed'));
 
         $this->assertDatabaseCount('orders', 0);
         $this->assertDatabaseCount('payments', 0);
@@ -249,7 +260,18 @@ class CheckoutPaymentTest extends TestCase
     {
         $customer = Customer::factory()->create();
         $address = CustomerAddress::factory()->create(['customer_id' => $customer->id]);
-        $restaurant = Restaurant::factory()->approved()->create(['commission_rate' => 15]);
+        DeliveryZone::factory()->create([
+            'is_active' => true,
+            'polygon' => [
+                'type' => 'circle',
+                'center' => [(float) $address->latitude, (float) $address->longitude],
+                'radius_km' => 100,
+            ],
+        ]);
+        $restaurant = Restaurant::factory()->approved()->create([
+            'commission_rate' => 15,
+            'min_order_amount' => 0,
+        ]);
         $category = MenuCategory::factory()->create(['restaurant_id' => $restaurant->id]);
         $menuItem = MenuItem::factory()->available()->create([
             'menu_category_id' => $category->id,
@@ -265,10 +287,13 @@ class CheckoutPaymentTest extends TestCase
         return [
             'customer_address_id' => $address->id,
             'payment_method' => $method,
+            'tip_amount' => 0,
+            'idempotency_token' => (string) Str::uuid(),
             'items' => [[
                 'menu_item_id' => $menuItem->id,
                 'quantity' => 2,
                 'addon_ids' => [],
+                'expected_unit_price' => 100,
             ]],
         ];
     }

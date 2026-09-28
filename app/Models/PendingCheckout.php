@@ -14,6 +14,7 @@ class PendingCheckout extends Model
         'customer_id', 'restaurant_id', 'customer_address_id', 'payment_method',
         'payload', 'total_amount', 'paymongo_session_id', 'paymongo_checkout_url',
         'paymongo_reference', 'status', 'order_id', 'expires_at',
+        'idempotency_token',
     ];
 
     protected function casts(): array

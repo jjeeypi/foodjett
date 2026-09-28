@@ -27,6 +27,9 @@ final readonly class OrderCheckoutData
         public float $totalAmount,
         public float $commissionAmount,
         public ?string $customerNotes,
+        public ?int $voucherId,
+        public ?string $voucherCode,
+        public float $deliveryDistanceKm,
         public array $items,
     ) {}
 
@@ -46,6 +49,9 @@ final readonly class OrderCheckoutData
             'total_amount' => $this->totalAmount,
             'commission_amount' => $this->commissionAmount,
             'customer_notes' => $this->customerNotes,
+            'voucher_id' => $this->voucherId,
+            'voucher_code' => $this->voucherCode,
+            'delivery_distance_km' => $this->deliveryDistanceKm,
             'items' => $this->items,
         ];
     }
@@ -99,6 +105,9 @@ final readonly class OrderCheckoutData
             totalAmount: (float) ($payload['total_amount'] ?? 0),
             commissionAmount: (float) ($payload['commission_amount'] ?? 0),
             customerNotes: isset($payload['customer_notes']) ? (string) $payload['customer_notes'] : null,
+            voucherId: isset($payload['voucher_id']) ? (int) $payload['voucher_id'] : null,
+            voucherCode: isset($payload['voucher_code']) ? (string) $payload['voucher_code'] : null,
+            deliveryDistanceKm: (float) ($payload['delivery_distance_km'] ?? 0),
             items: $items,
         );
     }

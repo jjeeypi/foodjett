@@ -30,13 +30,17 @@ class StoreCheckoutRequest extends FormRequest
             ],
             'payment_method' => ['required', Rule::in(['cod', 'gcash', 'card'])],
             'customer_notes' => ['nullable', 'string', 'max:1000'],
+            'voucher_code' => ['nullable', 'string', 'max:50'],
+            'tip_amount' => ['required', 'numeric', 'min:0', 'max:5000'],
+            'idempotency_token' => ['required', 'uuid'],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.menu_item_id' => ['required', 'integer', 'distinct', 'exists:menu_items,id'],
+            'items.*.menu_item_id' => ['required', 'integer', 'exists:menu_items,id'],
             'items.*.menu_item_variant_id' => ['nullable', 'integer', 'exists:menu_item_variants,id'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:20'],
             'items.*.addon_ids' => ['sometimes', 'array'],
             'items.*.addon_ids.*' => ['integer', 'distinct', 'exists:menu_item_addons,id'],
             'items.*.special_instructions' => ['nullable', 'string', 'max:500'],
+            'items.*.expected_unit_price' => ['required', 'numeric', 'min:0'],
         ];
     }
 
@@ -63,7 +67,8 @@ class StoreCheckoutRequest extends FormRequest
      *     menu_item_variant_id?: int|null,
      *     quantity: int,
      *     addon_ids?: list<int>,
-     *     special_instructions?: string|null
+     *     special_instructions?: string|null,
+     *     expected_unit_price: float
      * }>
      */
     public function items(): array
@@ -85,9 +90,27 @@ class StoreCheckoutRequest extends FormRequest
                 'special_instructions' => isset($item['special_instructions'])
                     ? (string) $item['special_instructions']
                     : null,
+                'expected_unit_price' => (float) $item['expected_unit_price'],
             ];
         }
 
         return $items;
+    }
+
+    public function voucherCode(): ?string
+    {
+        $code = trim((string) $this->validated('voucher_code', ''));
+
+        return $code === '' ? null : mb_strtoupper($code);
+    }
+
+    public function tipAmount(): float
+    {
+        return (float) $this->validated('tip_amount');
+    }
+
+    public function idempotencyToken(): string
+    {
+        return (string) $this->validated('idempotency_token');
     }
 }

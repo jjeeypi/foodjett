@@ -27,7 +27,7 @@ const titleForKey = (key: string) =>
         .join(' ');
 
 const isNumericKey = (key: string) =>
-    /(?:radius|minutes|rate|amount)/.test(key);
+    /(?:radius|minutes|rate|amount|fee)/.test(key);
 
 const groupFor = (key: string) =>
     key.includes('commission') || key.includes('fee')

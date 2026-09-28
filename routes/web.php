@@ -10,14 +10,13 @@ use App\Http\Controllers\AdminRemittanceController;
 use App\Http\Controllers\Auth\RegisteredRestaurantController;
 use App\Http\Controllers\Auth\RegisteredRiderController;
 use App\Http\Controllers\CheckoutCallbackController;
-use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\Customer\CheckoutController as CustomerCheckoutController;
 use App\Http\Controllers\Customer\FoodController as CustomerFoodController;
 use App\Http\Controllers\Customer\HomeController as CustomerHomeController;
 use App\Http\Controllers\Customer\OrderController as CustomerOrderController;
 use App\Http\Controllers\Customer\RestaurantController as CustomerRestaurantController;
 use App\Http\Controllers\Customer\SearchController as CustomerSearchController;
 use App\Http\Controllers\DashboardRedirectController;
-use App\Http\Controllers\OrderPlacedController;
 use App\Http\Controllers\PayMongoWebhookController;
 use App\Http\Controllers\PendingApprovalController;
 use App\Http\Controllers\Restaurant\DashboardController as RestaurantDashboardController;
@@ -238,11 +237,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->name('checkout.callback');
         Route::get('restaurants/{restaurant}', [CustomerRestaurantController::class, 'show'])
             ->name('restaurants.show');
-        Route::get('restaurants/{restaurant}/checkout', [CheckoutController::class, 'show'])->name('checkout.show');
-        Route::post('restaurants/{restaurant}/checkout', [CheckoutController::class, 'store'])
+        Route::post('checkout/addresses', [CustomerCheckoutController::class, 'storeAddress'])
+            ->name('checkout.addresses.store');
+        Route::get('restaurants/{restaurant}/checkout', [CustomerCheckoutController::class, 'show'])
+            ->name('checkout.show');
+        Route::post('restaurants/{restaurant}/checkout/quote', [CustomerCheckoutController::class, 'quote'])
+            ->middleware('throttle:60,1')
+            ->name('checkout.quote');
+        Route::post('restaurants/{restaurant}/checkout', [CustomerCheckoutController::class, 'store'])
             ->middleware('throttle:10,1')
             ->name('checkout.store');
-        Route::get('orders/{order}/placed', OrderPlacedController::class)->name('orders.placed');
         Route::patch('orders/{order}/cancel', [CustomerOrderController::class, 'cancel'])
             ->name('orders.cancel');
     });

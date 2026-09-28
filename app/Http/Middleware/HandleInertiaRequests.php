@@ -94,6 +94,7 @@ class HandleInertiaRequests extends Middleware
                     ],
                 ];
             },
+            'checkoutCompleted' => fn (): bool => (bool) $request->session()->get('checkoutCompleted', false),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

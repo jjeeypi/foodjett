@@ -30,6 +30,7 @@ declare module '@inertiajs/core' {
                     track_url: string;
                 } | null;
             } | null;
+            checkoutCompleted: boolean;
             sidebarOpen: boolean;
             [key: string]: unknown;
         };

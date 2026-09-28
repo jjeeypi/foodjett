@@ -59,7 +59,7 @@ function CustomerShell({ children }: { children: ReactNode }) {
     const page = usePage();
     const { auth, customerContext, name } = page.props;
     const getInitials = useInitials();
-    const { itemCount, openCart } = useCart();
+    const { itemCount, openCart, clearCart } = useCart();
     const [search, setSearch] = useState('');
     const [mobileOpen, setMobileOpen] = useState(false);
     const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
@@ -69,6 +69,12 @@ function CustomerShell({ children }: { children: ReactNode }) {
         const query = page.url.split('?')[1] ?? '';
         setSearch(new URLSearchParams(query).get('q') ?? '');
     }, [page.url]);
+
+    useEffect(() => {
+        if (page.props.checkoutCompleted) {
+            clearCart();
+        }
+    }, [clearCart, page.props.checkoutCompleted]);
 
     const isActive = (href?: string) => {
         if (!href) return false;
@@ -304,7 +310,10 @@ function CustomerShell({ children }: { children: ReactNode }) {
                                             method="post"
                                             as="button"
                                             className="w-full"
-                                            onClick={() => router.flushAll()}
+                                            onClick={() => {
+                                                clearCart();
+                                                router.flushAll();
+                                            }}
                                         >
                                             <LogOut /> Logout
                                         </Link>

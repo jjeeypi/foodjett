@@ -1,39 +1,42 @@
 import { Head, Link } from '@inertiajs/react';
-import { CheckCircle2, XCircle } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-export default function PaymentResult({
-    success,
-    title,
-    message,
+const money = new Intl.NumberFormat('en-PH', {
+    style: 'currency',
+    currency: 'PHP',
+});
+
+export default function CheckoutSuccess({
     orderNumber,
     orderId,
     totalAmount,
+    cod = false,
 }: {
-    success: boolean;
-    title: string;
-    message: string;
-    orderNumber?: string | null;
-    orderId?: number | null;
-    totalAmount?: number;
+    orderNumber: string | null;
+    orderId: number | null;
+    totalAmount: number;
+    cod?: boolean;
 }) {
-    const Icon = success ? CheckCircle2 : XCircle;
-
     return (
         <>
-            <Head title={success ? 'Order placed' : 'Payment failed'} />
-            <div className="flex flex-1 items-center justify-center p-4 md:p-6">
+            <Head title="Order placed" />
+            <div className="flex min-h-[70vh] items-center justify-center p-4 md:p-6">
                 <Card className="w-full max-w-lg text-center">
                     <CardHeader className="items-center">
-                        <Icon
-                            className={`size-12 ${success ? 'text-emerald-600' : 'text-destructive'}`}
-                        />
-                        <CardTitle className="text-xl">{title}</CardTitle>
+                        <CheckCircle2 className="size-12 text-emerald-600" />
+                        <CardTitle className="text-xl">
+                            {cod
+                                ? 'Order placed successfully!'
+                                : 'Payment Successful — thank you for your order!'}
+                        </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <p className="text-muted-foreground text-sm">
-                            {message}
+                            {cod
+                                ? 'Pay the rider in cash when your food arrives.'
+                                : 'Your payment was verified and your order has been sent to the restaurant.'}
                         </p>
                         {orderNumber && (
                             <div className="rounded-lg border p-4">
@@ -41,15 +44,13 @@ export default function PaymentResult({
                                     Order number
                                 </p>
                                 <p className="font-semibold">{orderNumber}</p>
-                                {totalAmount !== undefined && (
-                                    <p className="mt-1 text-sm">
-                                        ₱{totalAmount.toFixed(2)}
-                                    </p>
-                                )}
+                                <p className="mt-1 text-sm">
+                                    {money.format(totalAmount)}
+                                </p>
                             </div>
                         )}
                         <div className="flex flex-col justify-center gap-2 sm:flex-row">
-                            {success && orderId && (
+                            {orderId && (
                                 <Button asChild>
                                     <Link
                                         href={`/customer/orders/${orderId}/track`}
@@ -58,15 +59,8 @@ export default function PaymentResult({
                                     </Link>
                                 </Button>
                             )}
-                            <Button
-                                asChild
-                                variant={
-                                    success && orderId ? 'outline' : 'default'
-                                }
-                            >
-                                <Link href="/customer">
-                                    Back to restaurants
-                                </Link>
+                            <Button variant="outline" asChild>
+                                <Link href="/customer">Back to home</Link>
                             </Button>
                         </div>
                     </CardContent>

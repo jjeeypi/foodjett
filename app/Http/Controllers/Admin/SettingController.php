@@ -32,6 +32,8 @@ class SettingController extends Controller
         'auto_cancel_after_minutes',
         'rider_waiting_compensation_threshold_minutes',
         'default_commission_rate',
+        'delivery_base_fee',
+        'delivery_fee_per_km',
     ];
 
     public function platform(): Response
@@ -274,7 +276,7 @@ class SettingController extends Controller
     /** @return list<string> */
     private function rulesForSetting(string $key): array
     {
-        if (! preg_match('/(?:radius|minutes|rate|amount)/', $key)) {
+        if (! preg_match('/(?:radius|minutes|rate|amount|fee)/', $key)) {
             return ['required', 'string', 'max:255'];
         }
 
@@ -284,6 +286,10 @@ class SettingController extends Controller
 
         if (str_contains($key, 'rate')) {
             return ['required', 'numeric', 'between:0,100'];
+        }
+
+        if (str_contains($key, 'fee')) {
+            return ['required', 'numeric', 'min:0'];
         }
 
         return ['required', 'numeric', 'gt:0'];

@@ -3,9 +3,12 @@ import {
     useCallback,
     useContext,
     useMemo,
+    useEffect,
     useState,
     type ReactNode,
 } from 'react';
+
+const CART_STORAGE_KEY = 'foodjett.customer-cart';
 
 export type CartVariant = {
     id: number;
@@ -68,8 +71,24 @@ const unitPrice = (item: CartItem) =>
     item.addons.reduce((total, addon) => total + addon.price, 0);
 
 export function CartProvider({ children }: { children: ReactNode }) {
-    const [items, setItems] = useState<CartItem[]>([]);
+    const [items, setItems] = useState<CartItem[]>(() => {
+        if (typeof window === 'undefined') return [];
+
+        try {
+            const stored = JSON.parse(
+                window.localStorage.getItem(CART_STORAGE_KEY) ?? '[]',
+            ) as unknown;
+
+            return Array.isArray(stored) ? (stored as CartItem[]) : [];
+        } catch {
+            return [];
+        }
+    });
     const [isOpen, setIsOpen] = useState(false);
+
+    useEffect(() => {
+        window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+    }, [items]);
 
     const addItem = useCallback(
         (item: AddCartItem): boolean => {
