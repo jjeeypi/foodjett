@@ -30,12 +30,14 @@ class OrderStatusUpdated implements ShouldBroadcast, ShouldDispatchAfterCommit
 
     /**
      * @var array{
+     *     id: int,
      *     name: string,
      *     photo_url: string|null,
      *     vehicle_type: string,
      *     current_latitude: float|null,
      *     current_longitude: float|null,
-     *     location_updated_at: string|null
+     *     location_updated_at: string|null,
+     *     message_url: string
      * }|null
      */
     public readonly ?array $rider;
@@ -68,6 +70,7 @@ class OrderStatusUpdated implements ShouldBroadcast, ShouldDispatchAfterCommit
             : Carbon::parse($order->estimated_ready_at)->toIso8601String();
         $this->prep_extended_minutes = $order->prep_extended_minutes;
         $this->rider = $rider === null ? null : [
+            'id' => $rider->id,
             'name' => $rider->user->name,
             'photo_url' => $rider->user->avatar_path === null
                 ? null
@@ -78,6 +81,10 @@ class OrderStatusUpdated implements ShouldBroadcast, ShouldDispatchAfterCommit
             'location_updated_at' => $rider->last_location_at === null
                 ? null
                 : Carbon::parse($rider->last_location_at)->toIso8601String(),
+            'message_url' => route('customer.messages.index', [
+                'order_id' => $order->id,
+                'rider_id' => $rider->id,
+            ], absolute: false),
         ];
         $this->escalation_stage = $order->poolOffer?->escalation_stage;
         $this->notice = $notice;

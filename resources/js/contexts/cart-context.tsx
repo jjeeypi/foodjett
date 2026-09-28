@@ -49,6 +49,7 @@ type CartContextValue = {
     openCart: () => void;
     closeCart: () => void;
     addItem: (item: AddCartItem) => boolean;
+    addItems: (items: AddCartItem[]) => boolean;
     updateQuantity: (key: string, quantity: number) => void;
     removeItem: (key: string) => void;
     clearCart: () => void;
@@ -90,10 +91,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
         window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
     }, [items]);
 
-    const addItem = useCallback(
-        (item: AddCartItem): boolean => {
+    const addItems = useCallback(
+        (newItems: AddCartItem[]): boolean => {
+            if (newItems.length === 0) return false;
+
+            const targetRestaurantId = newItems[0].restaurantId;
+            if (
+                newItems.some(
+                    (item) => item.restaurantId !== targetRestaurantId,
+                )
+            ) {
+                return false;
+            }
+
             const hasAnotherRestaurant =
-                items.length > 0 && items[0].restaurantId !== item.restaurantId;
+                items.length > 0 &&
+                items[0].restaurantId !== targetRestaurantId;
 
             if (
                 hasAnotherRestaurant &&
@@ -104,33 +117,41 @@ export function CartProvider({ children }: { children: ReactNode }) {
                 return false;
             }
 
-            const key = itemKey(item);
-            const quantity = Math.max(1, item.quantity ?? 1);
-
             setItems((currentItems) => {
-                const nextItems = hasAnotherRestaurant ? [] : currentItems;
-                const existing = nextItems.find(
-                    (candidate) => candidate.key === key,
-                );
+                let nextItems = hasAnotherRestaurant ? [] : [...currentItems];
 
-                if (existing) {
-                    return nextItems.map((candidate) =>
-                        candidate.key === key
-                            ? {
-                                  ...candidate,
-                                  quantity: candidate.quantity + quantity,
-                              }
-                            : candidate,
+                for (const item of newItems) {
+                    const key = itemKey(item);
+                    const quantity = Math.max(1, item.quantity ?? 1);
+                    const existingIndex = nextItems.findIndex(
+                        (candidate) => candidate.key === key,
                     );
+
+                    if (existingIndex >= 0) {
+                        nextItems = nextItems.map((candidate, index) =>
+                            index === existingIndex
+                                ? {
+                                      ...candidate,
+                                      quantity: candidate.quantity + quantity,
+                                  }
+                                : candidate,
+                        );
+                    } else {
+                        nextItems.push({ ...item, key, quantity });
+                    }
                 }
 
-                return [...nextItems, { ...item, key, quantity }];
+                return nextItems;
             });
             setIsOpen(true);
 
             return true;
         },
         [items],
+    );
+    const addItem = useCallback(
+        (item: AddCartItem): boolean => addItems([item]),
+        [addItems],
     );
 
     const updateQuantity = useCallback((key: string, quantity: number) => {
@@ -177,12 +198,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
             openCart: () => setIsOpen(true),
             closeCart: () => setIsOpen(false),
             addItem,
+            addItems,
             updateQuantity,
             removeItem,
             clearCart,
         }),
         [
             addItem,
+            addItems,
             clearCart,
             isOpen,
             itemCount,

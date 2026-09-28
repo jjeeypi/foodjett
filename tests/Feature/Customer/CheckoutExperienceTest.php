@@ -107,11 +107,11 @@ class CheckoutExperienceTest extends TestCase
         $first = $this->actingAs($customer->user)
             ->post(route('customer.checkout.store', $restaurant), $payload);
         $order = Order::query()->sole();
-        $first->assertRedirect(route('customer.orders.track', $order));
+        $first->assertRedirect(route('customer.orders.show', $order));
 
         $this->actingAs($customer->user)
             ->post(route('customer.checkout.store', $restaurant), $payload)
-            ->assertRedirect(route('customer.orders.track', $order));
+            ->assertRedirect(route('customer.orders.show', $order));
 
         $this->assertDatabaseCount('orders', 1);
         $this->assertDatabaseCount('voucher_redemptions', 1);

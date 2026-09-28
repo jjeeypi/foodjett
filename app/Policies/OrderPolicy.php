@@ -48,7 +48,26 @@ class OrderPolicy extends Policy
 
     public function cancel(User $user, Order $order): bool
     {
-        return $this->ownsCustomer($user, $order->customer_id);
+        return $this->ownsCustomer($user, $order->customer_id)
+            && $order->canBeCancelledByCustomer();
+    }
+
+    public function reorder(User $user, Order $order): bool
+    {
+        return $this->ownsCustomer($user, $order->customer_id)
+            && $order->status === 'delivered';
+    }
+
+    public function review(User $user, Order $order): bool
+    {
+        return $this->ownsCustomer($user, $order->customer_id)
+            && $order->canBeReviewedByCustomer();
+    }
+
+    public function report(User $user, Order $order): bool
+    {
+        return $this->ownsCustomer($user, $order->customer_id)
+            && $order->canBeReportedByCustomer();
     }
 
     public function assignRider(User $user, Order $order): bool

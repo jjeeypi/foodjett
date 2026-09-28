@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Carbon;
 
 class Order extends Model
 {
@@ -170,5 +171,41 @@ class Order extends Model
             'rejected_by_restaurant', 'cancelled_by_customer',
             'cancelled_by_restaurant', 'cancelled_no_rider', 'cancelled_by_admin',
         ]);
+    }
+
+    public function canBeCancelledByCustomer(): bool
+    {
+        if ($this->status === 'placed') {
+            return true;
+        }
+
+        if ($this->status !== 'finding_rider') {
+            return false;
+        }
+
+        $this->loadMissing('poolOffer');
+
+        return $this->poolOffer?->escalation_stage === 'customer_notified';
+    }
+
+    public function canBeReviewedByCustomer(): bool
+    {
+        return $this->status === 'delivered';
+    }
+
+    public function canBeReportedByCustomer(): bool
+    {
+        if (! $this->isTerminal()) {
+            return true;
+        }
+
+        if ($this->status !== 'delivered') {
+            return false;
+        }
+
+        $deliveredAt = $this->delivered_at ?? $this->updated_at;
+
+        return $deliveredAt !== null
+            && Carbon::parse($deliveredAt)->gte(now()->subDays(7));
     }
 }

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import AppLogoIcon from '@/components/app-logo-icon';
+import ActiveOrderBanner from '@/components/customer/active-order-banner';
 import CartPanel from '@/components/customer/cart-panel';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -153,20 +154,7 @@ function CustomerShell({ children }: { children: ReactNode }) {
         <div className="bg-background min-h-screen">
             <div className="sticky top-0 z-40">
                 {customerContext?.active_order && (
-                    <Link
-                        href={customerContext.active_order.track_url}
-                        className="bg-primary text-primary-foreground flex min-h-8 items-center justify-center gap-2 px-4 py-1.5 text-center text-xs font-medium sm:text-sm"
-                    >
-                        <span className="size-2 animate-pulse rounded-full bg-white" />
-                        Order {customerContext.active_order.order_number} is{' '}
-                        {customerContext.active_order.status.replaceAll(
-                            '_',
-                            ' ',
-                        )}
-                        <span className="underline underline-offset-2">
-                            Track order
-                        </span>
-                    </Link>
+                    <ActiveOrderBanner order={customerContext.active_order} />
                 )}
 
                 <header className="border-border bg-background/95 supports-[backdrop-filter]:bg-background/85 border-b backdrop-blur">

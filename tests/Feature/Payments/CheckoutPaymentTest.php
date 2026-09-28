@@ -54,7 +54,7 @@ class CheckoutPaymentTest extends TestCase
         );
 
         $order = Order::query()->sole();
-        $response->assertRedirect(route('customer.orders.track', $order));
+        $response->assertRedirect(route('customer.orders.show', $order));
         $this->assertSame('placed', $order->status);
         $this->assertSame('260.00', $order->total_amount);
         $this->assertDatabaseHas('payments', [

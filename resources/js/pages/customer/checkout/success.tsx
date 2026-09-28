@@ -52,9 +52,7 @@ export default function CheckoutSuccess({
                         <div className="flex flex-col justify-center gap-2 sm:flex-row">
                             {orderId && (
                                 <Button asChild>
-                                    <Link
-                                        href={`/customer/orders/${orderId}/track`}
-                                    >
+                                    <Link href={`/customer/orders/${orderId}`}>
                                         Track order
                                     </Link>
                                 </Button>

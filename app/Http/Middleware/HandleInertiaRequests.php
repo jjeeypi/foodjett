@@ -90,7 +90,7 @@ class HandleInertiaRequests extends Middleware
                         'id' => $activeOrder->id,
                         'order_number' => $activeOrder->order_number,
                         'status' => $activeOrder->status,
-                        'track_url' => route('customer.orders.track', $activeOrder, absolute: false),
+                        'show_url' => route('customer.orders.show', $activeOrder, absolute: false),
                     ],
                 ];
             },

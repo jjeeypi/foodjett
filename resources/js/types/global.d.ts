@@ -1,4 +1,5 @@
 import type { Auth } from '@/types/auth';
+import type { CustomerOrderStatus } from '@/components/customer/order-status-badge';
 
 declare module 'react' {
     interface InputHTMLAttributes<T> {
@@ -26,8 +27,8 @@ declare module '@inertiajs/core' {
                 active_order: {
                     id: number;
                     order_number: string;
-                    status: string;
-                    track_url: string;
+                    status: CustomerOrderStatus;
+                    show_url: string;
                 } | null;
             } | null;
             checkoutCompleted: boolean;

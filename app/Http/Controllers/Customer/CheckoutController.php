@@ -96,7 +96,7 @@ class CheckoutController extends Controller
                 409,
             );
 
-            return to_route('customer.orders.track', $existingOrder)
+            return to_route('customer.orders.show', $existingOrder)
                 ->with('checkoutCompleted', true);
         }
 
@@ -112,7 +112,7 @@ class CheckoutController extends Controller
         if ($checkout->paymentMethod === 'cod') {
             $order = $createOrder->handle($checkout, 'pending', checkoutToken: $token);
 
-            return to_route('customer.orders.track', $order)
+            return to_route('customer.orders.show', $order)
                 ->with('checkoutCompleted', true);
         }
 
@@ -234,7 +234,7 @@ class CheckoutController extends Controller
         );
 
         if ($checkout->order_id !== null) {
-            return to_route('customer.orders.track', $checkout->order_id)
+            return to_route('customer.orders.show', $checkout->order_id)
                 ->with('checkoutCompleted', true);
         }
 

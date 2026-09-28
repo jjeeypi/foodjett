@@ -44,24 +44,24 @@ class CustomerOrderTrackingTest extends TestCase
         ]);
 
         $this->actingAs($customer->user)
-            ->get(route('customer.orders.track', $order))
+            ->get(route('customer.orders.show', $order))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->component('customer/orders/track')
+                ->component('customer/orders/show')
                 ->where('order.id', $order->id)
                 ->where('order.status', 'rider_assigned')
                 ->where('order.rider.name', $rider->user->name)
                 ->where('order.rider.vehicle_type', 'motorcycle')
-                ->where('order.restaurant_location.latitude', $order->restaurant->latitude)
-                ->where('order.delivery_location.latitude', $order->deliveryAddress->latitude)
+                ->where('order.restaurant.latitude', $order->restaurant->latitude)
+                ->where('order.delivery_address.latitude', $order->deliveryAddress->latitude)
                 ->has('history', 1));
 
         $this->actingAs($admin->user)
-            ->get(route('customer.orders.track', $order))
+            ->get(route('customer.orders.show', $order))
             ->assertOk();
 
         $this->actingAs($otherCustomer->user)
-            ->get(route('customer.orders.track', $order))
+            ->get(route('customer.orders.show', $order))
             ->assertForbidden();
     }
 
@@ -183,7 +183,7 @@ class CustomerOrderTrackingTest extends TestCase
 
         $this->actingAs($customer->user)
             ->patch(route('customer.orders.cancel', $order))
-            ->assertRedirect(route('customer.orders.track', $order));
+            ->assertRedirect(route('customer.orders.show', $order));
 
         $this->assertSame('cancelled_by_customer', $order->refresh()->status);
         $this->assertSame('customer', $order->cancelled_by);

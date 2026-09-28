@@ -122,8 +122,8 @@ class CustomerHomeTest extends TestCase
                 ->where('customerContext.active_order.order_number', $order->order_number)
                 ->where('customerContext.active_order.status', 'preparing')
                 ->where(
-                    'customerContext.active_order.track_url',
-                    route('customer.orders.track', $order, absolute: false),
+                    'customerContext.active_order.show_url',
+                    route('customer.orders.show', $order, absolute: false),
                 ));
     }
 

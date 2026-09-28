@@ -215,6 +215,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         });
     });
 
+    Route::get('customer/orders/{order}', [CustomerOrderController::class, 'show'])
+        ->middleware('role:customer,admin')
+        ->name('customer.orders.show');
     Route::get('customer/orders/{order}/track', [CustomerOrderController::class, 'show'])
         ->middleware('role:customer,admin')
         ->name('customer.orders.track');
@@ -226,8 +229,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::redirect('dashboard', '/customer')->name('dashboard');
         Route::inertia('messages', 'customer/coming-soon', ['title' => 'Messages'])
             ->name('messages.index');
-        Route::inertia('orders', 'customer/coming-soon', ['title' => 'Your orders'])
-            ->name('orders.index');
+        Route::get('orders', [CustomerOrderController::class, 'index'])->name('orders.index');
         Route::inertia('addresses', 'customer/coming-soon', ['title' => 'Addresses'])
             ->name('addresses.index');
         Route::inertia('support', 'customer/coming-soon', ['title' => 'Contact support'])
@@ -247,6 +249,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('restaurants/{restaurant}/checkout', [CustomerCheckoutController::class, 'store'])
             ->middleware('throttle:10,1')
             ->name('checkout.store');
+        Route::post('orders/{order}/reorder', [CustomerOrderController::class, 'reorder'])
+            ->middleware('throttle:20,1')
+            ->name('orders.reorder');
+        Route::post('orders/{order}/review', [CustomerOrderController::class, 'review'])
+            ->middleware('throttle:10,1')
+            ->name('orders.review');
+        Route::post('orders/{order}/reports', [CustomerOrderController::class, 'report'])
+            ->middleware('throttle:10,1')
+            ->name('orders.reports.store');
         Route::patch('orders/{order}/cancel', [CustomerOrderController::class, 'cancel'])
             ->name('orders.cancel');
     });
