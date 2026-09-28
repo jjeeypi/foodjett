@@ -29,6 +29,7 @@ export type CartItem = {
     basePrice: number;
     variant?: CartVariant | null;
     addons: CartAddon[];
+    specialInstructions: string;
     quantity: number;
 };
 
@@ -58,7 +59,7 @@ const itemKey = (item: AddCartItem) => {
         .sort((left, right) => left - right)
         .join('-');
 
-    return `${item.menuItemId}:${item.variant?.id ?? 'regular'}:${addonIds}`;
+    return `${item.menuItemId}:${item.variant?.id ?? 'regular'}:${addonIds}:${item.specialInstructions.trim().toLocaleLowerCase()}`;
 };
 
 const unitPrice = (item: CartItem) =>

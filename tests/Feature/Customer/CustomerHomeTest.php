@@ -65,7 +65,7 @@ class CustomerHomeTest extends TestCase
                     ->doesntContain('id', $closedRestaurant->id)));
     }
 
-    public function test_food_browse_filters_by_cuisine_and_search_term(): void
+    public function test_home_cuisine_search_lands_on_the_filtered_search_page(): void
     {
         $customer = Customer::factory()->create();
         CustomerAddress::factory()->default()->create(['customer_id' => $customer->id]);
@@ -79,18 +79,17 @@ class CustomerHomeTest extends TestCase
         ]);
 
         $this->actingAs($customer->user)
-            ->get(route('customer.foods.index', [
+            ->get(route('customer.search.index', [
                 'cuisine' => 'Filipino',
-                'search' => 'Lola',
+                'q' => 'Lola',
             ]))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->component('customer/home')
-                ->where('isBrowsing', true)
+                ->component('customer/search/index')
                 ->where('filters.cuisine', 'Filipino')
-                ->where('filters.search', 'Lola')
-                ->has('browseRestaurants', 1)
-                ->where('browseRestaurants.0.id', $matchingRestaurant->id));
+                ->where('filters.q', 'Lola')
+                ->has('results.data', 1)
+                ->where('results.data.0.id', $matchingRestaurant->id));
     }
 
     public function test_home_prompts_for_an_address_instead_of_building_nearby_results(): void
@@ -104,7 +103,7 @@ class CustomerHomeTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('defaultAddress', null)
                 ->has('nearbyRestaurants', 0)
-                ->has('browseRestaurants', 1));
+                ->has('featuredRestaurants', 1));
     }
 
     public function test_layout_receives_the_customers_latest_active_order(): void

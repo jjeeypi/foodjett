@@ -67,12 +67,19 @@ function CustomerShell({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         const query = page.url.split('?')[1] ?? '';
-        setSearch(new URLSearchParams(query).get('search') ?? '');
+        setSearch(new URLSearchParams(query).get('q') ?? '');
     }, [page.url]);
 
     const isActive = (href?: string) => {
         if (!href) return false;
         const normalizedHref = href.replace(/\/$/, '');
+
+        if (
+            normalizedHref === '/customer/foods' &&
+            currentPath === '/customer/search'
+        ) {
+            return true;
+        }
 
         return normalizedHref === '/customer'
             ? currentPath === normalizedHref
@@ -83,8 +90,8 @@ function CustomerShell({ children }: { children: ReactNode }) {
     const submitSearch = (event: FormEvent) => {
         event.preventDefault();
         router.get(
-            '/customer/foods',
-            search.trim() === '' ? {} : { search: search.trim() },
+            '/customer/search',
+            search.trim() === '' ? {} : { q: search.trim() },
             { preserveState: true },
         );
         setMobileSearchOpen(false);

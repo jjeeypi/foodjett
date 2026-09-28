@@ -11,8 +11,11 @@ use App\Http\Controllers\Auth\RegisteredRestaurantController;
 use App\Http\Controllers\Auth\RegisteredRiderController;
 use App\Http\Controllers\CheckoutCallbackController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\Customer\FoodController as CustomerFoodController;
 use App\Http\Controllers\Customer\HomeController as CustomerHomeController;
 use App\Http\Controllers\Customer\OrderController as CustomerOrderController;
+use App\Http\Controllers\Customer\RestaurantController as CustomerRestaurantController;
+use App\Http\Controllers\Customer\SearchController as CustomerSearchController;
 use App\Http\Controllers\DashboardRedirectController;
 use App\Http\Controllers\OrderPlacedController;
 use App\Http\Controllers\PayMongoWebhookController;
@@ -219,7 +222,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::prefix('customer')->name('customer.')->middleware('role:customer')->group(function () {
         Route::get('/', CustomerHomeController::class)->name('home');
-        Route::get('foods', CustomerHomeController::class)->name('foods.index');
+        Route::get('foods', [CustomerFoodController::class, 'index'])->name('foods.index');
+        Route::get('search', [CustomerSearchController::class, 'index'])->name('search.index');
         Route::redirect('dashboard', '/customer')->name('dashboard');
         Route::inertia('messages', 'customer/coming-soon', ['title' => 'Messages'])
             ->name('messages.index');
@@ -232,6 +236,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('checkout/paymongo/{pendingCheckout}/callback', CheckoutCallbackController::class)
             ->middleware('signed')
             ->name('checkout.callback');
+        Route::get('restaurants/{restaurant}', [CustomerRestaurantController::class, 'show'])
+            ->name('restaurants.show');
         Route::get('restaurants/{restaurant}/checkout', [CheckoutController::class, 'show'])->name('checkout.show');
         Route::post('restaurants/{restaurant}/checkout', [CheckoutController::class, 'store'])
             ->middleware('throttle:10,1')

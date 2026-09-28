@@ -116,6 +116,11 @@ export default function CartPanel() {
                                                     .join(', ')}
                                             </p>
                                         )}
+                                        {item.specialInstructions && (
+                                            <p className="text-muted-foreground mt-1 line-clamp-2 text-xs italic">
+                                                “{item.specialInstructions}”
+                                            </p>
+                                        )}
                                         <div className="mt-3 flex items-center justify-between gap-3">
                                             <div className="flex items-center rounded-md border">
                                                 <Button
