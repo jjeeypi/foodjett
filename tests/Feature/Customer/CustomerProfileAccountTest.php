@@ -79,6 +79,33 @@ class CustomerProfileAccountTest extends TestCase
         Notification::assertSentTo($customer->user, VerifyEmail::class);
     }
 
+    public function test_avatar_uploads_are_limited_to_ten_megabytes(): void
+    {
+        Storage::fake('public');
+        $customer = Customer::factory()->create();
+
+        $profile = [
+            'name' => $customer->user->name,
+            'email' => $customer->user->email,
+            'phone' => $customer->user->phone,
+        ];
+
+        $this->actingAs($customer->user)
+            ->patch(route('customer.account.profile.update'), [
+                ...$profile,
+                'avatar' => UploadedFile::fake()->create('avatar.jpg', 10 * 1024, 'image/jpeg'),
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->actingAs($customer->user)
+            ->from(route('customer.account.profile.edit'))
+            ->patch(route('customer.account.profile.update'), [
+                ...$profile,
+                'avatar' => UploadedFile::fake()->create('avatar.jpg', (10 * 1024) + 1, 'image/jpeg'),
+            ])
+            ->assertSessionHasErrors('avatar');
+    }
+
     public function test_customer_account_deletion_anonymizes_instead_of_deleting_history(): void
     {
         Storage::fake('public');

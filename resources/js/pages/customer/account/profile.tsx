@@ -87,7 +87,7 @@ export default function CustomerProfile({
                         <CardTitle>Profile information</CardTitle>
                         <CardDescription>
                             Email changes require verification again. Avatar
-                            uploads accept JPG, PNG, or WebP up to 2 MB.
+                            uploads accept JPG, PNG, or WebP up to 10 MB.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
