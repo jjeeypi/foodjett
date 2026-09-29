@@ -28,6 +28,7 @@ use App\Http\Controllers\Restaurant\DashboardController as RestaurantDashboardCo
 use App\Http\Controllers\Restaurant\MenuCategoryController as RestaurantMenuCategoryController;
 use App\Http\Controllers\Restaurant\MenuItemController as RestaurantMenuItemController;
 use App\Http\Controllers\Restaurant\OperatingStatusController as RestaurantOperatingStatusController;
+use App\Http\Controllers\Rider\AvailabilityController as RiderAvailabilityController;
 use App\Http\Controllers\Rider\LocationController as RiderLocationController;
 use App\Http\Controllers\Rider\OrderPoolController;
 use App\Http\Controllers\RiderOrderController;
@@ -211,13 +212,27 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('pending', [PendingApprovalController::class, 'rider'])->name('pending');
 
         Route::middleware('approved:rider')->group(function () {
-            Route::inertia('dashboard', 'rider/dashboard')->name('dashboard');
+            Route::get('dashboard', [OrderPoolController::class, 'index'])->name('dashboard');
             Route::get('orders', [OrderPoolController::class, 'index'])->name('orders.index');
             Route::post('orders/{order}/accept', [OrderPoolController::class, 'accept'])->name('orders.accept');
             Route::patch('orders/{order}/complete', [RiderOrderController::class, 'complete'])->name('orders.complete');
+            Route::post('availability/toggle', [RiderAvailabilityController::class, 'toggle'])
+                ->name('availability.toggle');
             Route::post('location', [RiderLocationController::class, 'update'])
                 ->middleware('throttle:30,1')
                 ->name('location.update');
+            Route::inertia('active', 'rider/coming-soon', [
+                'title' => 'Active delivery',
+                'description' => 'Your active delivery workspace is coming soon.',
+            ])->name('active');
+            Route::inertia('earnings', 'rider/coming-soon', [
+                'title' => 'Earnings',
+                'description' => 'Your earnings summary is coming soon.',
+            ])->name('earnings');
+            Route::inertia('account', 'rider/coming-soon', [
+                'title' => 'Account',
+                'description' => 'Your rider account settings are coming soon.',
+            ])->name('account');
             Route::get('remittances', [RiderRemittanceController::class, 'index'])->name('remittances.index');
             Route::post('remittances', [RiderRemittanceController::class, 'store'])->name('remittances.store');
         });

@@ -74,6 +74,31 @@ class HandleInertiaRequests extends Middleware
                     'approval_status' => $restaurant->approval_status,
                 ];
             },
+            'riderContext' => function () use ($request): ?array {
+                $user = $request->user();
+
+                if (! $user?->isRider()) {
+                    return null;
+                }
+
+                $rider = $user->rider;
+                if ($rider === null) {
+                    return null;
+                }
+
+                $isBusy = $rider->orders()
+                    ->whereNotIn('status', Order::TERMINAL_STATUSES)
+                    ->exists();
+
+                return [
+                    'id' => $rider->id,
+                    'availability_status' => $rider->availability_status,
+                    'is_busy' => $isBusy,
+                    'current_latitude' => $rider->current_latitude,
+                    'current_longitude' => $rider->current_longitude,
+                    'last_location_at' => $rider->last_location_at?->toIso8601String(),
+                ];
+            },
             'customerContext' => function () use ($request): ?array {
                 $customer = $request->user()?->customer;
 

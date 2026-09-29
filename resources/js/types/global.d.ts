@@ -23,6 +23,14 @@ declare module '@inertiajs/core' {
                 operating_status: 'open' | 'closed' | 'temporarily_closed';
                 approval_status: 'pending' | 'approved' | 'rejected';
             } | null;
+            riderContext: {
+                id: number;
+                availability_status: 'offline' | 'available' | 'busy';
+                is_busy: boolean;
+                current_latitude: number | null;
+                current_longitude: number | null;
+                last_location_at: string | null;
+            } | null;
             customerContext: {
                 unread_messages: number;
                 active_order: {
