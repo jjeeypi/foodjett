@@ -7,14 +7,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-/* @chisel-registration */
 import { register } from '@/routes';
-/* @end-chisel-registration */
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
-/* @chisel-passkeys */
 import PasskeyVerify from '@/components/passkey-verify';
-/* @end-chisel-passkeys */
 
 type Props = {
     status?: string;
@@ -26,9 +22,7 @@ export default function Login({ status, canResetPassword }: Props) {
         <>
             <Head title="Log in" />
 
-            {/* @chisel-passkeys */}
             <PasskeyVerify />
-            {/* @end-chisel-passkeys */}
 
             <Form
                 {...store.form()}
@@ -49,6 +43,7 @@ export default function Login({ status, canResetPassword }: Props) {
                                     tabIndex={1}
                                     autoComplete="email"
                                     placeholder="email@example.com"
+                                    className="h-11"
                                 />
                                 <InputError message={errors.email} />
                             </div>
@@ -73,11 +68,12 @@ export default function Login({ status, canResetPassword }: Props) {
                                     tabIndex={2}
                                     autoComplete="current-password"
                                     placeholder="Password"
+                                    className="h-11"
                                 />
                                 <InputError message={errors.password} />
                             </div>
 
-                            <div className="flex items-center space-x-3">
+                            <div className="flex min-h-11 items-center space-x-3">
                                 <Checkbox
                                     id="remember"
                                     name="remember"
@@ -88,7 +84,7 @@ export default function Login({ status, canResetPassword }: Props) {
 
                             <Button
                                 type="submit"
-                                className="mt-4 w-full"
+                                className="mt-4 h-11 w-full"
                                 tabIndex={4}
                                 disabled={processing}
                                 data-test="login-button"
@@ -98,14 +94,12 @@ export default function Login({ status, canResetPassword }: Props) {
                             </Button>
                         </div>
 
-                        {/* @chisel-registration */}
                         <div className="text-muted-foreground text-center text-sm">
                             Don't have an account?{' '}
                             <TextLink href={register()} tabIndex={5}>
                                 Sign up
                             </TextLink>
                         </div>
-                        {/* @end-chisel-registration */}
                     </>
                 )}
             </Form>

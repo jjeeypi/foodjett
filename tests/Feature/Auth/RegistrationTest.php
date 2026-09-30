@@ -30,6 +30,7 @@ class RegistrationTest extends TestCase
         $response = $this->post(route('register.store'), [
             'name' => 'Test User',
             'email' => 'test@example.com',
+            'phone' => '09171234567',
             'password' => 'password',
             'password_confirmation' => 'password',
         ]);
@@ -40,6 +41,7 @@ class RegistrationTest extends TestCase
         $user = User::where('email', 'test@example.com')->firstOrFail();
 
         $this->assertTrue($user->isCustomer());
+        $this->assertSame('09171234567', $user->phone);
         $this->assertNotNull($user->customer);
     }
 }
