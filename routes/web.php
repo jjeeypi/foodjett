@@ -29,6 +29,7 @@ use App\Http\Controllers\Restaurant\MenuItemController as RestaurantMenuItemCont
 use App\Http\Controllers\Restaurant\OperatingStatusController as RestaurantOperatingStatusController;
 use App\Http\Controllers\Rider\ActiveOrderController as RiderActiveOrderController;
 use App\Http\Controllers\Rider\AvailabilityController as RiderAvailabilityController;
+use App\Http\Controllers\Rider\EarningsController as RiderEarningsController;
 use App\Http\Controllers\Rider\LocationController as RiderLocationController;
 use App\Http\Controllers\Rider\OrderPoolController;
 use App\Http\Controllers\RiderRemittanceController;
@@ -233,10 +234,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 ->name('active.failed');
             Route::post('active/cancel', [RiderActiveOrderController::class, 'cancel'])
                 ->name('active.cancel');
-            Route::inertia('earnings', 'rider/coming-soon', [
-                'title' => 'Earnings',
-                'description' => 'Your earnings summary is coming soon.',
-            ])->name('earnings');
+            Route::get('earnings', [RiderEarningsController::class, 'index'])->name('earnings');
             Route::inertia('account', 'rider/coming-soon', [
                 'title' => 'Account',
                 'description' => 'Your rider account settings are coming soon.',

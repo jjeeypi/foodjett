@@ -36,13 +36,17 @@ class RiderAvailabilityTest extends TestCase
                 ->component('rider/active')
                 ->where('order', null));
 
-        foreach (['earnings', 'account'] as $pageName) {
-            $this->actingAs($rider->user)
-                ->get(route("rider.{$pageName}"))
-                ->assertOk()
-                ->assertInertia(fn (Assert $page) => $page
-                    ->component('rider/coming-soon'));
-        }
+        $this->actingAs($rider->user)
+            ->get(route('rider.earnings'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('rider/earnings/index'));
+
+        $this->actingAs($rider->user)
+            ->get(route('rider.account'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('rider/coming-soon'));
     }
 
     public function test_rider_can_go_online_and_refresh_their_location(): void
