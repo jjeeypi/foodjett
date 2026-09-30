@@ -46,7 +46,8 @@ class RiderAvailabilityTest extends TestCase
             ->get(route('rider.account'))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->component('rider/coming-soon'));
+                ->component('rider/account/index')
+                ->has('documents', 4));
     }
 
     public function test_rider_can_go_online_and_refresh_their_location(): void

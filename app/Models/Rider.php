@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\EncryptedJsonArray;
 use Database\Factories\RiderFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -28,7 +29,7 @@ class Rider extends Model
             'last_location_at' => 'datetime',
             'cash_on_hand' => 'decimal:2',
             'cash_remit_limit' => 'decimal:2',
-            'payout_account_details' => 'array',
+            'payout_account_details' => EncryptedJsonArray::class,
         ];
     }
 

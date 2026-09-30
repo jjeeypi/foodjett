@@ -27,6 +27,7 @@ use App\Http\Controllers\Restaurant\DashboardController as RestaurantDashboardCo
 use App\Http\Controllers\Restaurant\MenuCategoryController as RestaurantMenuCategoryController;
 use App\Http\Controllers\Restaurant\MenuItemController as RestaurantMenuItemController;
 use App\Http\Controllers\Restaurant\OperatingStatusController as RestaurantOperatingStatusController;
+use App\Http\Controllers\Rider\AccountController as RiderAccountController;
 use App\Http\Controllers\Rider\ActiveOrderController as RiderActiveOrderController;
 use App\Http\Controllers\Rider\AvailabilityController as RiderAvailabilityController;
 use App\Http\Controllers\Rider\EarningsController as RiderEarningsController;
@@ -235,10 +236,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('active/cancel', [RiderActiveOrderController::class, 'cancel'])
                 ->name('active.cancel');
             Route::get('earnings', [RiderEarningsController::class, 'index'])->name('earnings');
-            Route::inertia('account', 'rider/coming-soon', [
-                'title' => 'Account',
-                'description' => 'Your rider account settings are coming soon.',
-            ])->name('account');
+            Route::get('account', [RiderAccountController::class, 'index'])->name('account');
+            Route::patch('account/profile', [RiderAccountController::class, 'updateProfile'])
+                ->name('account.profile.update');
+            Route::patch('account/vehicle', [RiderAccountController::class, 'updateVehicle'])
+                ->name('account.vehicle.update');
+            Route::patch('account/payout', [RiderAccountController::class, 'updatePayout'])
+                ->name('account.payout.update');
+            Route::post('account/documents/{type}', [RiderAccountController::class, 'replaceDocument'])
+                ->name('account.documents.replace');
+            Route::delete('account', [RiderAccountController::class, 'destroy'])
+                ->name('account.destroy');
             Route::get('remittances', [RiderRemittanceController::class, 'index'])->name('remittances.index');
             Route::post('remittances', [RiderRemittanceController::class, 'store'])->name('remittances.store');
         });
