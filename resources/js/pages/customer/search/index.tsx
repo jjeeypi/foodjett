@@ -286,7 +286,7 @@ export default function SearchIndex({
                                 </CardContent>
                             </Card>
                         ) : filters.tab === 'restaurants' ? (
-                            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                            <div className="grid grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-3">
                                 {(results.data as RestaurantCardData[]).map(
                                     (restaurant) => (
                                         <RestaurantCard
@@ -297,7 +297,7 @@ export default function SearchIndex({
                                 )}
                             </div>
                         ) : (
-                            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                            <div className="grid grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-3">
                                 {(results.data as CatalogFood[]).map((item) => (
                                     <FoodCard
                                         key={item.id}

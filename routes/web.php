@@ -51,7 +51,7 @@ Route::middleware('guest')->group(function () {
         ->name('register.rider.store');
 });
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware('auth')->group(function () {
     Route::get('dashboard', DashboardRedirectController::class)->name('dashboard');
     Route::get('conversations/{conversation}/messages', [ConversationMessageController::class, 'index'])
         ->name('conversations.messages.index');

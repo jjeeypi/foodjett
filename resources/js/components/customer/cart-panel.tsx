@@ -36,7 +36,7 @@ export default function CartPanel() {
 
     return (
         <Sheet open={isOpen} onOpenChange={(open) => !open && closeCart()}>
-            <SheetContent className="w-full sm:max-w-md">
+            <SheetContent className="customer-mobile-surface w-full sm:max-w-md">
                 <SheetHeader className="border-b">
                     <SheetTitle>Your cart</SheetTitle>
                     <SheetDescription>

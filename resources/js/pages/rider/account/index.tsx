@@ -228,13 +228,13 @@ function ProfileCard({
                     {mustVerifyEmail &&
                         auth.user.email_verified_at === null && (
                             <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
-                                Your email is unverified.{' '}
+                                Email verification is optional.{' '}
                                 <Link
                                     href={send()}
                                     as="button"
                                     className="font-medium underline"
                                 >
-                                    Resend verification email
+                                    Send verification email
                                 </Link>
                                 {status === 'verification-link-sent' && (
                                     <p className="mt-1 font-medium">

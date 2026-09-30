@@ -6,7 +6,6 @@ import {
     Home,
     LogOut,
     MapPin,
-    Menu,
     MessageCircle,
     Search,
     Settings,
@@ -14,6 +13,7 @@ import {
     Utensils,
 } from 'lucide-react';
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import AppLogoIcon from '@/components/app-logo-icon';
 import ActiveOrderBanner from '@/components/customer/active-order-banner';
 import CartPanel from '@/components/customer/cart-panel';
@@ -29,18 +29,10 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import {
-    Sheet,
-    SheetContent,
-    SheetHeader,
-    SheetTitle,
-    SheetTrigger,
-} from '@/components/ui/sheet';
 import { CartProvider, useCart } from '@/contexts/cart-context';
 import { useInitials } from '@/hooks/use-initials';
 import { cn } from '@/lib/utils';
 import { logout } from '@/routes';
-import type { LucideIcon } from 'lucide-react';
 
 type NavItem = {
     label: string;
@@ -65,12 +57,13 @@ const navItems: NavItem[] = [
 function CustomerShell({ children }: { children: ReactNode }) {
     const page = usePage();
     const { auth, customerContext, name } = page.props;
+    const brandName = name === 'Laravel' ? 'Foodjett' : name;
     const getInitials = useInitials();
     const { itemCount, openCart, clearCart } = useCart();
     const [search, setSearch] = useState('');
-    const [mobileOpen, setMobileOpen] = useState(false);
-    const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
     const [accountOpen, setAccountOpen] = useState(false);
+    const [mobileAccountOpen, setMobileAccountOpen] = useState(false);
+    const [desktopSearchOpen, setDesktopSearchOpen] = useState(false);
     const [unreadMessages, setUnreadMessages] = useState(
         customerContext?.unread_messages ?? 0,
     );
@@ -82,9 +75,7 @@ function CustomerShell({ children }: { children: ReactNode }) {
     }, [page.url]);
 
     useEffect(() => {
-        if (page.props.checkoutCompleted) {
-            clearCart();
-        }
+        if (page.props.checkoutCompleted) clearCart();
     }, [clearCart, page.props.checkoutCompleted]);
 
     useEffect(() => {
@@ -108,7 +99,8 @@ function CustomerShell({ children }: { children: ReactNode }) {
 
         if (
             normalizedHref === '/customer/foods' &&
-            currentPath === '/customer/search'
+            (currentPath === '/customer/search' ||
+                currentPath.startsWith('/customer/restaurants/'))
         ) {
             return true;
         }
@@ -126,17 +118,16 @@ function CustomerShell({ children }: { children: ReactNode }) {
             search.trim() === '' ? {} : { q: search.trim() },
             { preserveState: true },
         );
-        setMobileSearchOpen(false);
+        setDesktopSearchOpen(false);
     };
 
-    const navControl = (item: NavItem, mobile = false) => {
+    const desktopNavControl = (item: NavItem) => {
         const Icon = item.icon;
         const className = cn(
             'relative inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
             isActive(item.href)
                 ? 'bg-primary/10 text-primary'
                 : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-            mobile && 'w-full justify-start',
         );
 
         if (item.cart) {
@@ -145,15 +136,12 @@ function CustomerShell({ children }: { children: ReactNode }) {
                     key={item.label}
                     type="button"
                     className={className}
-                    onClick={() => {
-                        setMobileOpen(false);
-                        openCart();
-                    }}
+                    onClick={openCart}
                 >
                     <Icon className="size-4" />
                     {item.label}
                     {itemCount > 0 && (
-                        <span className="bg-primary text-primary-foreground ml-auto inline-flex min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] leading-5">
+                        <span className="bg-primary text-primary-foreground inline-flex min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] leading-5">
                             {itemCount > 99 ? '99+' : itemCount}
                         </span>
                     )}
@@ -166,13 +154,140 @@ function CustomerShell({ children }: { children: ReactNode }) {
                 key={item.label}
                 href={item.href ?? '#'}
                 className={className}
-                onClick={() => setMobileOpen(false)}
                 prefetch
             >
                 <Icon className="size-4" />
                 {item.label}
                 {item.label === 'Messages' && unreadMessages > 0 && (
-                    <span className="bg-primary text-primary-foreground ml-auto inline-flex min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] leading-5">
+                    <span className="bg-primary text-primary-foreground inline-flex min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] leading-5">
+                        {unreadMessages > 99 ? '99+' : unreadMessages}
+                    </span>
+                )}
+            </Link>
+        );
+    };
+
+    const accountMenu = (mobile = false) => {
+        const open = mobile ? mobileAccountOpen : accountOpen;
+        const setOpen = mobile ? setMobileAccountOpen : setAccountOpen;
+
+        return (
+            <DropdownMenu open={open} onOpenChange={setOpen}>
+                <DropdownMenuTrigger asChild>
+                    <Button
+                        variant="ghost"
+                        className={cn(
+                            'size-11 rounded-full p-1',
+                            mobile &&
+                                'border border-white/10 bg-white/5 hover:bg-white/10',
+                        )}
+                        aria-label="Account menu"
+                    >
+                        <Avatar className="size-9">
+                            <AvatarImage
+                                src={auth.user.avatar}
+                                alt={auth.user.name}
+                            />
+                            <AvatarFallback>
+                                {getInitials(auth.user.name)}
+                            </AvatarFallback>
+                        </Avatar>
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                    className={cn('w-60', mobile && 'customer-mobile-surface')}
+                    align="end"
+                >
+                    <DropdownMenuLabel>
+                        <p className="truncate">{auth.user.name}</p>
+                        <p className="text-muted-foreground truncate text-xs font-normal">
+                            {auth.user.email}
+                        </p>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuGroup>
+                        <DropdownMenuItem
+                            asChild
+                            className={cn(
+                                isActive('/customer/account/addresses') &&
+                                    'bg-accent',
+                            )}
+                        >
+                            <Link
+                                href="/customer/account/addresses"
+                                onClick={() => setOpen(false)}
+                            >
+                                <MapPin /> Addresses
+                            </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            asChild
+                            className={cn(
+                                isActive('/customer/account/profile') &&
+                                    'bg-accent',
+                            )}
+                        >
+                            <Link
+                                href="/customer/account/profile"
+                                onClick={() => setOpen(false)}
+                            >
+                                <Settings /> Edit profile
+                            </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            asChild
+                            className={cn(
+                                isActive('/customer/account/support') &&
+                                    'bg-accent',
+                            )}
+                        >
+                            <Link
+                                href="/customer/account/support"
+                                onClick={() => setOpen(false)}
+                            >
+                                <CircleHelp /> Contact support
+                            </Link>
+                        </DropdownMenuItem>
+                    </DropdownMenuGroup>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                        <Link
+                            href={logout()}
+                            method="post"
+                            as="button"
+                            className="w-full"
+                            onClick={() => {
+                                setOpen(false);
+                                clearCart();
+                                router.flushAll();
+                            }}
+                        >
+                            <LogOut /> Logout
+                        </Link>
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+        );
+    };
+
+    const mobileNavLink = (item: NavItem) => {
+        const Icon = item.icon;
+        const active = isActive(item.href);
+
+        return (
+            <Link
+                key={item.label}
+                href={item.href ?? '#'}
+                className={cn(
+                    'relative flex min-h-16 flex-col items-center justify-center gap-1 rounded-2xl px-1 text-[10px] font-medium transition-colors',
+                    active ? 'text-primary' : 'text-white/55',
+                )}
+                prefetch
+            >
+                <Icon className="size-5" strokeWidth={active ? 2.5 : 2} />
+                <span>{item.label}</span>
+                {item.label === 'Messages' && unreadMessages > 0 && (
+                    <span className="bg-primary text-primary-foreground absolute top-2.5 left-1/2 ml-1 inline-flex min-w-4 items-center justify-center rounded-full px-1 text-[9px] leading-4">
                         {unreadMessages > 99 ? '99+' : unreadMessages}
                     </span>
                 )}
@@ -181,37 +296,30 @@ function CustomerShell({ children }: { children: ReactNode }) {
     };
 
     return (
-        <div className="bg-background min-h-screen">
+        <div className="customer-shell bg-background text-foreground min-h-screen">
             <div className="sticky top-0 z-40">
                 {customerContext?.active_order && (
                     <ActiveOrderBanner order={customerContext.active_order} />
                 )}
 
                 <header className="border-border bg-background/95 supports-[backdrop-filter]:bg-background/85 border-b backdrop-blur">
-                    <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 md:px-6">
-                        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-                            <SheetTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="md:hidden"
-                                    aria-label="Open navigation"
-                                >
-                                    <Menu />
-                                </Button>
-                            </SheetTrigger>
-                            <SheetContent side="left" className="w-72">
-                                <SheetHeader className="border-b text-left">
-                                    <SheetTitle>{name}</SheetTitle>
-                                </SheetHeader>
-                                <nav className="flex flex-col gap-1 px-3">
-                                    {navItems.map((item) =>
-                                        navControl(item, true),
-                                    )}
-                                </nav>
-                            </SheetContent>
-                        </Sheet>
+                    <div className="flex min-h-16 items-center justify-between px-4 pt-[env(safe-area-inset-top)] md:hidden">
+                        <Link
+                            href="/customer"
+                            className="flex shrink-0 items-center gap-2"
+                            prefetch
+                        >
+                            <span className="bg-primary text-primary-foreground flex size-9 items-center justify-center rounded-xl shadow-[0_0_22px_rgba(57,255,20,0.25)]">
+                                <AppLogoIcon className="size-5 fill-current" />
+                            </span>
+                            <span className="text-lg font-bold tracking-tight text-white">
+                                {brandName}
+                            </span>
+                        </Link>
+                        {accountMenu(true)}
+                    </div>
 
+                    <div className="mx-auto hidden h-16 max-w-7xl items-center gap-3 px-6 md:flex">
                         <Link
                             href="/customer"
                             className="flex shrink-0 items-center gap-2"
@@ -220,13 +328,13 @@ function CustomerShell({ children }: { children: ReactNode }) {
                             <span className="bg-primary text-primary-foreground flex size-9 items-center justify-center rounded-lg">
                                 <AppLogoIcon className="size-5 fill-current" />
                             </span>
-                            <span className="hidden font-semibold tracking-tight sm:inline">
-                                {name}
+                            <span className="font-semibold tracking-tight">
+                                {brandName}
                             </span>
                         </Link>
 
-                        <nav className="mx-auto hidden items-center gap-1 md:flex">
-                            {navItems.map((item) => navControl(item))}
+                        <nav className="mx-auto flex items-center gap-1">
+                            {navItems.map(desktopNavControl)}
                         </nav>
 
                         <div className="ml-auto flex items-center gap-1 md:ml-0">
@@ -250,141 +358,20 @@ function CustomerShell({ children }: { children: ReactNode }) {
                                 variant="ghost"
                                 size="icon"
                                 className="lg:hidden"
-                                aria-label="Search"
+                                aria-label="Open search"
                                 onClick={() =>
-                                    setMobileSearchOpen((open) => !open)
+                                    setDesktopSearchOpen((open) => !open)
                                 }
                             >
                                 <Search />
                             </Button>
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="relative md:hidden"
-                                onClick={openCart}
-                                aria-label={`Cart with ${itemCount} items`}
-                            >
-                                <ShoppingBag />
-                                {itemCount > 0 && (
-                                    <span className="bg-primary text-primary-foreground absolute -top-0.5 -right-0.5 inline-flex min-w-4 items-center justify-center rounded-full px-1 text-[10px] leading-4">
-                                        {itemCount > 99 ? '99+' : itemCount}
-                                    </span>
-                                )}
-                            </Button>
-
-                            <DropdownMenu
-                                open={accountOpen}
-                                onOpenChange={setAccountOpen}
-                            >
-                                <DropdownMenuTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        className="size-10 rounded-full p-1"
-                                        aria-label="Account menu"
-                                    >
-                                        <Avatar className="size-8">
-                                            <AvatarImage
-                                                src={auth.user.avatar}
-                                                alt={auth.user.name}
-                                            />
-                                            <AvatarFallback>
-                                                {getInitials(auth.user.name)}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent
-                                    className="w-60"
-                                    align="end"
-                                >
-                                    <DropdownMenuLabel>
-                                        <p className="truncate">
-                                            {auth.user.name}
-                                        </p>
-                                        <p className="text-muted-foreground truncate text-xs font-normal">
-                                            {auth.user.email}
-                                        </p>
-                                    </DropdownMenuLabel>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuGroup>
-                                        <DropdownMenuItem
-                                            asChild
-                                            className={cn(
-                                                isActive(
-                                                    '/customer/account/addresses',
-                                                ) && 'bg-accent',
-                                            )}
-                                        >
-                                            <Link
-                                                href="/customer/account/addresses"
-                                                onClick={() =>
-                                                    setAccountOpen(false)
-                                                }
-                                            >
-                                                <MapPin /> Addresses
-                                            </Link>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                            asChild
-                                            className={cn(
-                                                isActive(
-                                                    '/customer/account/profile',
-                                                ) && 'bg-accent',
-                                            )}
-                                        >
-                                            <Link
-                                                href="/customer/account/profile"
-                                                onClick={() =>
-                                                    setAccountOpen(false)
-                                                }
-                                            >
-                                                <Settings /> Edit profile
-                                            </Link>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                            asChild
-                                            className={cn(
-                                                isActive(
-                                                    '/customer/account/support',
-                                                ) && 'bg-accent',
-                                            )}
-                                        >
-                                            <Link
-                                                href="/customer/account/support"
-                                                onClick={() =>
-                                                    setAccountOpen(false)
-                                                }
-                                            >
-                                                <CircleHelp /> Contact support
-                                            </Link>
-                                        </DropdownMenuItem>
-                                    </DropdownMenuGroup>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem asChild>
-                                        <Link
-                                            href={logout()}
-                                            method="post"
-                                            as="button"
-                                            className="w-full"
-                                            onClick={() => {
-                                                setAccountOpen(false);
-                                                clearCart();
-                                                router.flushAll();
-                                            }}
-                                        >
-                                            <LogOut /> Logout
-                                        </Link>
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                            {accountMenu()}
                         </div>
                     </div>
-
-                    {mobileSearchOpen && (
+                    {desktopSearchOpen && (
                         <form
                             onSubmit={submitSearch}
-                            className="border-t px-4 py-3 lg:hidden"
+                            className="hidden border-t px-6 py-3 md:block lg:hidden"
                         >
                             <div className="relative mx-auto max-w-7xl">
                                 <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
@@ -403,11 +390,13 @@ function CustomerShell({ children }: { children: ReactNode }) {
                 </header>
             </div>
 
-            <main>{children}</main>
-            <footer className="border-border bg-muted/20 border-t">
+            <main className="pb-[calc(7rem+env(safe-area-inset-bottom))] md:pb-0">
+                {children}
+            </main>
+            <footer className="border-border bg-muted/20 hidden border-t md:block">
                 <div className="text-muted-foreground mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-6 text-sm sm:flex-row md:px-6">
                     <p>
-                        © {new Date().getFullYear()} {name}
+                        © {new Date().getFullYear()} {brandName}
                     </p>
                     <Link
                         href="/customer/account/support"
@@ -417,6 +406,40 @@ function CustomerShell({ children }: { children: ReactNode }) {
                     </Link>
                 </div>
             </footer>
+
+            <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:hidden">
+                <nav
+                    aria-label="Customer navigation"
+                    className="pointer-events-auto relative mx-3 grid h-[4.75rem] grid-cols-5 items-end rounded-[1.75rem] border border-white/10 bg-[#161616]/95 px-1 shadow-[0_18px_50px_rgba(0,0,0,0.65)] backdrop-blur-xl"
+                >
+                    {mobileNavLink(navItems[0])}
+                    {mobileNavLink(navItems[1])}
+                    <div className="relative flex min-h-16 items-end justify-center">
+                        <div
+                            aria-hidden="true"
+                            className="absolute top-0 left-1/2 h-10 w-20 -translate-x-1/2 rounded-b-[2rem] bg-[#0a0a0a]"
+                        />
+                        <button
+                            type="button"
+                            onClick={openCart}
+                            className="bg-primary text-primary-foreground relative z-10 mb-4 flex size-16 -translate-y-4 items-center justify-center rounded-full border-[6px] border-[#0a0a0a] shadow-[0_0_28px_rgba(57,255,20,0.32)] transition active:scale-95"
+                            aria-label={`Open cart with ${itemCount} items`}
+                        >
+                            <ShoppingBag className="size-6" strokeWidth={2.5} />
+                            {itemCount > 0 && (
+                                <span className="absolute -top-1 -right-1 inline-flex min-w-5 items-center justify-center rounded-full bg-white px-1 text-[10px] leading-5 font-bold text-black ring-2 ring-[#0a0a0a]">
+                                    {itemCount > 99 ? '99+' : itemCount}
+                                </span>
+                            )}
+                        </button>
+                        <span className="absolute bottom-1.5 text-[10px] font-medium text-white/55">
+                            Cart
+                        </span>
+                    </div>
+                    {mobileNavLink(navItems[3])}
+                    {mobileNavLink(navItems[4])}
+                </nav>
+            </div>
             <CartPanel />
         </div>
     );

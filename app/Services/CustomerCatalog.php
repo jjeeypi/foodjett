@@ -337,9 +337,12 @@ class CustomerCatalog
             );
         }
 
+        $distance = $distance === null ? null : round((float) $distance, 1);
+        $reviewCount = (int) ($restaurant->getAttribute('reviews_count') ?? 0);
+
         return [
             ...$this->item($item),
-            'distance_km' => $distance === null ? null : round((float) $distance, 1),
+            'distance_km' => $distance,
             'category' => [
                 'id' => $item->category->id,
                 'name' => $item->category->name,
@@ -348,6 +351,11 @@ class CustomerCatalog
                 'id' => $restaurant->id,
                 'name' => $restaurant->name,
                 'cuisine_type' => (string) $restaurant->cuisine_type,
+                'rating' => $reviewCount > 0
+                    ? round((float) $restaurant->getAttribute('reviews_avg_rating'), 1)
+                    : null,
+                'review_count' => $reviewCount,
+                'estimated_delivery_minutes' => $this->estimatedDeliveryMinutes($restaurant, $distance),
                 'is_open' => $this->isRestaurantOpen($restaurant),
                 'show_url' => route('customer.restaurants.show', $restaurant, absolute: false),
             ],

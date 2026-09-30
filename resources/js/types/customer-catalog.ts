@@ -46,6 +46,12 @@ export type CatalogFood = {
         id: number;
         name: string;
         cuisine_type: string;
+        rating: number | null;
+        review_count: number;
+        estimated_delivery_minutes: {
+            minimum: number;
+            maximum: number;
+        };
         is_open: boolean;
         show_url: string;
     };

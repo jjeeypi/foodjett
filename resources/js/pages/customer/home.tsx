@@ -1,5 +1,6 @@
-import { Head, Link } from '@inertiajs/react';
-import { ArrowRight, MapPin } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { ArrowRight, MapPin, Search, SlidersHorizontal } from 'lucide-react';
+import { useState, type FormEvent } from 'react';
 import RestaurantCard from '@/components/customer/restaurant-card';
 import { Button } from '@/components/ui/button';
 import {
@@ -34,7 +35,7 @@ function RestaurantGrid({
     restaurants: RestaurantCardData[];
 }) {
     return (
-        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-3">
             {restaurants.map((restaurant) => (
                 <RestaurantCard key={restaurant.id} restaurant={restaurant} />
             ))}
@@ -49,12 +50,57 @@ export default function CustomerHome({
     defaultAddress,
     cuisines,
 }: HomeProps) {
+    const [search, setSearch] = useState('');
+
+    const submitSearch = (event: FormEvent) => {
+        event.preventDefault();
+        router.get(
+            '/customer/search',
+            search.trim() === '' ? {} : { q: search.trim() },
+        );
+    };
+
     return (
         <>
             <Head title="Home" />
 
-            <div className="mx-auto w-full max-w-7xl space-y-10 px-4 py-6 md:px-6 md:py-8">
-                <section className="bg-primary/8 overflow-hidden rounded-2xl border p-6 md:p-8">
+            <div className="mx-auto w-full max-w-7xl space-y-7 px-4 py-5 md:space-y-10 md:px-6 md:py-8">
+                <section className="md:hidden" aria-label="Find food">
+                    <p className="mb-4 text-sm font-medium text-white/60">
+                        Order your favourite food!
+                    </p>
+                    <form onSubmit={submitSearch} className="flex gap-2.5">
+                        <label className="relative min-w-0 flex-1">
+                            <span className="sr-only">
+                                Search food or restaurant
+                            </span>
+                            <Search className="text-muted-foreground absolute top-1/2 left-4 size-5 -translate-y-1/2" />
+                            <input
+                                type="search"
+                                value={search}
+                                onChange={(event) =>
+                                    setSearch(event.target.value)
+                                }
+                                placeholder="Search food or restaurant"
+                                className="bg-card border-border focus:border-primary focus:ring-primary/25 h-13 w-full rounded-2xl border pr-4 pl-12 text-sm text-white transition outline-none focus:ring-4"
+                            />
+                        </label>
+                        <Button
+                            asChild
+                            size="icon"
+                            className="size-13 shrink-0 rounded-2xl shadow-[0_0_22px_rgba(57,255,20,0.18)]"
+                        >
+                            <Link
+                                href="/customer/search"
+                                aria-label="Open search filters"
+                            >
+                                <SlidersHorizontal className="size-5" />
+                            </Link>
+                        </Button>
+                    </form>
+                </section>
+
+                <section className="bg-primary/8 hidden overflow-hidden rounded-2xl border p-6 md:block md:p-8">
                     <div className="max-w-2xl">
                         <p className="text-primary text-sm font-semibold">
                             Food delivered around Dumaguete
@@ -76,7 +122,7 @@ export default function CustomerHome({
                 </section>
 
                 <section aria-labelledby="cuisine-heading">
-                    <div className="mb-4">
+                    <div className="mb-4 hidden md:block">
                         <h2
                             id="cuisine-heading"
                             className="text-xl font-semibold tracking-tight"
@@ -87,12 +133,18 @@ export default function CustomerHome({
                             Find food that matches your mood.
                         </p>
                     </div>
-                    <div className="flex gap-2 overflow-x-auto pb-2">
+                    <div className="customer-scrollbar-none -mx-4 flex gap-2 overflow-x-auto px-4 pb-2 md:mx-0 md:px-0">
+                        <Link
+                            href="/customer/search"
+                            className="bg-primary text-primary-foreground border-primary md:bg-background md:text-foreground md:border-border shrink-0 rounded-full border px-5 py-2.5 text-sm font-semibold shadow-[0_0_16px_rgba(57,255,20,0.14)] md:px-4 md:py-2 md:shadow-none"
+                        >
+                            All
+                        </Link>
                         {cuisines.map((cuisine) => (
                             <Link
                                 key={cuisine}
                                 href={`/customer/search?cuisine=${encodeURIComponent(cuisine)}`}
-                                className="bg-background hover:bg-muted shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-colors"
+                                className="bg-card hover:bg-muted md:bg-background shrink-0 rounded-full border px-5 py-2.5 text-sm font-medium transition-colors md:px-4 md:py-2"
                             >
                                 {cuisine}
                             </Link>
@@ -101,7 +153,7 @@ export default function CustomerHome({
                 </section>
 
                 <section aria-labelledby="featured-heading">
-                    <div className="mb-5 flex items-end justify-between gap-4">
+                    <div className="mb-4 flex items-end justify-between gap-4 md:mb-5">
                         <div>
                             <h2
                                 id="featured-heading"
@@ -111,7 +163,7 @@ export default function CustomerHome({
                                     ? 'Featured restaurants'
                                     : 'New around you'}
                             </h2>
-                            <p className="text-muted-foreground mt-1 text-sm">
+                            <p className="text-muted-foreground mt-1 hidden text-sm md:block">
                                 {featuredSource === 'featured_items'
                                     ? 'Restaurants serving featured menu picks.'
                                     : 'Recently added restaurants worth trying.'}
@@ -121,7 +173,7 @@ export default function CustomerHome({
                             variant="ghost"
                             size="sm"
                             asChild
-                            className="hidden sm:inline-flex"
+                            className="text-primary inline-flex px-0 sm:px-3"
                         >
                             <Link href="/customer/search">
                                 View all <ArrowRight />

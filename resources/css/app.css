@@ -141,3 +141,52 @@
         @apply bg-background text-foreground;
     }
 }
+
+@media (max-width: 767px) {
+    .customer-shell,
+    .customer-mobile-surface {
+        --background: #0a0a0a;
+        --foreground: #f7f7f7;
+        --card: #151515;
+        --card-foreground: #ffffff;
+        --popover: #151515;
+        --popover-foreground: #ffffff;
+        --primary: #39ff14;
+        --primary-foreground: #061104;
+        --secondary: #202020;
+        --secondary-foreground: #f7f7f7;
+        --muted: #1d1d1d;
+        --muted-foreground: #a3a3a3;
+        --accent: #242424;
+        --accent-foreground: #ffffff;
+        --border: #2c2c2c;
+        --input: #303030;
+        --ring: #39ff14;
+        --color-background: #0a0a0a;
+        --color-foreground: #f7f7f7;
+        --color-card: #151515;
+        --color-card-foreground: #ffffff;
+        --color-popover: #151515;
+        --color-popover-foreground: #ffffff;
+        --color-primary: #39ff14;
+        --color-primary-foreground: #061104;
+        --color-secondary: #202020;
+        --color-secondary-foreground: #f7f7f7;
+        --color-muted: #1d1d1d;
+        --color-muted-foreground: #a3a3a3;
+        --color-accent: #242424;
+        --color-accent-foreground: #ffffff;
+        --color-border: #2c2c2c;
+        --color-input: #303030;
+        --color-ring: #39ff14;
+        color-scheme: dark;
+    }
+}
+
+.customer-scrollbar-none {
+    scrollbar-width: none;
+}
+
+.customer-scrollbar-none::-webkit-scrollbar {
+    display: none;
+}

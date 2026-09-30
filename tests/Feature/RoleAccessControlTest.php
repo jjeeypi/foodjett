@@ -30,6 +30,24 @@ class RoleAccessControlTest extends TestCase
             ->assertRedirect(route('customer.home'));
     }
 
+    public function test_email_verification_is_optional_for_role_areas(): void
+    {
+        $admin = Admin::factory()->create()->user;
+        $restaurant = Restaurant::factory()->approved()->create();
+        $rider = Rider::factory()->create(['approval_status' => 'approved'])->user;
+        $customer = User::factory()->customer()->create();
+        $customer->customer()->create();
+
+        collect([$admin, $restaurant->user, $rider, $customer])
+            ->each(fn (User $user) => $user->forceFill(['email_verified_at' => null])->save());
+
+        $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk();
+        $this->actingAs($restaurant->user)->get(route('restaurant.dashboard'))->assertOk();
+        $this->actingAs($rider)->get(route('rider.dashboard'))->assertOk();
+        $this->actingAs($customer)->get(route('customer.home'))->assertOk();
+        $this->actingAs($customer)->get(route('appearance.edit'))->assertOk();
+    }
+
     public function test_users_cannot_access_another_roles_dashboard(): void
     {
         $customer = User::factory()->customer()->create();
