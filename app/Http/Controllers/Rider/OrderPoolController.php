@@ -128,7 +128,7 @@ class OrderPoolController extends Controller
             );
         });
 
-        return back()->with('success', 'Order accepted.');
+        return to_route('rider.active')->with('success', 'Order accepted.');
     }
 
     /** @return list<array<string, mixed>> */

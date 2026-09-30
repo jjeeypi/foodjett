@@ -11,6 +11,7 @@ use App\Http\Controllers\AdminRemittanceController;
 use App\Http\Controllers\Auth\RegisteredRestaurantController;
 use App\Http\Controllers\Auth\RegisteredRiderController;
 use App\Http\Controllers\CheckoutCallbackController;
+use App\Http\Controllers\ConversationMessageController;
 use App\Http\Controllers\Customer\AddressController as CustomerAddressController;
 use App\Http\Controllers\Customer\CheckoutController as CustomerCheckoutController;
 use App\Http\Controllers\Customer\FoodController as CustomerFoodController;
@@ -28,10 +29,10 @@ use App\Http\Controllers\Restaurant\DashboardController as RestaurantDashboardCo
 use App\Http\Controllers\Restaurant\MenuCategoryController as RestaurantMenuCategoryController;
 use App\Http\Controllers\Restaurant\MenuItemController as RestaurantMenuItemController;
 use App\Http\Controllers\Restaurant\OperatingStatusController as RestaurantOperatingStatusController;
+use App\Http\Controllers\Rider\ActiveOrderController as RiderActiveOrderController;
 use App\Http\Controllers\Rider\AvailabilityController as RiderAvailabilityController;
 use App\Http\Controllers\Rider\LocationController as RiderLocationController;
 use App\Http\Controllers\Rider\OrderPoolController;
-use App\Http\Controllers\RiderOrderController;
 use App\Http\Controllers\RiderRemittanceController;
 use Illuminate\Support\Facades\Route;
 
@@ -56,6 +57,14 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardRedirectController::class)->name('dashboard');
+    Route::get('conversations/{conversation}/messages', [ConversationMessageController::class, 'index'])
+        ->name('conversations.messages.index');
+    Route::post('conversations/{conversation}/messages', [ConversationMessageController::class, 'store'])
+        ->middleware('throttle:20,1')
+        ->name('conversations.messages.store');
+    Route::patch('conversations/{conversation}/read', [ConversationMessageController::class, 'markRead'])
+        ->middleware('throttle:60,1')
+        ->name('conversations.messages.read');
 
     Route::prefix('admin')->name('admin.')->middleware('role:admin')->group(function () {
         Route::get('dashboard', AdminDashboardController::class)->name('dashboard');
@@ -215,16 +224,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('dashboard', [OrderPoolController::class, 'index'])->name('dashboard');
             Route::get('orders', [OrderPoolController::class, 'index'])->name('orders.index');
             Route::post('orders/{order}/accept', [OrderPoolController::class, 'accept'])->name('orders.accept');
-            Route::patch('orders/{order}/complete', [RiderOrderController::class, 'complete'])->name('orders.complete');
             Route::post('availability/toggle', [RiderAvailabilityController::class, 'toggle'])
                 ->name('availability.toggle');
             Route::post('location', [RiderLocationController::class, 'update'])
                 ->middleware('throttle:30,1')
                 ->name('location.update');
-            Route::inertia('active', 'rider/coming-soon', [
-                'title' => 'Active delivery',
-                'description' => 'Your active delivery workspace is coming soon.',
-            ])->name('active');
+            Route::get('active', [RiderActiveOrderController::class, 'show'])->name('active');
+            Route::post('active/advance', [RiderActiveOrderController::class, 'advanceStatus'])
+                ->name('active.advance');
+            Route::post('active/issues', [RiderActiveOrderController::class, 'reportIssue'])
+                ->middleware('throttle:10,1')
+                ->name('active.issues.store');
+            Route::post('active/failed', [RiderActiveOrderController::class, 'failDelivery'])
+                ->name('active.failed');
+            Route::post('active/cancel', [RiderActiveOrderController::class, 'cancel'])
+                ->name('active.cancel');
             Route::inertia('earnings', 'rider/coming-soon', [
                 'title' => 'Earnings',
                 'description' => 'Your earnings summary is coming soon.',

@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { useConnectionStatus, useEchoPublic } from '@laravel/echo-react';
 import {
     Banknote,
@@ -11,11 +11,9 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import RiderLocationTracker from '@/components/rider/rider-location-tracker';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { playNewOrderSound } from '@/lib/notification-sound';
 
 type Location = {
@@ -114,12 +112,6 @@ export default function RiderOrderPool({
     const [acceptingOrderId, setAcceptingOrderId] = useState<number | null>(
         null,
     );
-    const [cashCollected, setCashCollected] = useState<Record<number, boolean>>(
-        {},
-    );
-    const [failureReasons, setFailureReasons] = useState<
-        Record<number, string>
-    >({});
     const processedEvents = useRef(new Set<string>());
     const acceptingOrderIdRef = useRef<number | null>(null);
     const highlightTimers = useRef(
@@ -496,125 +488,41 @@ export default function RiderOrderPool({
 
                 <section className="space-y-3">
                     <h2 className="text-lg font-semibold">Active delivery</h2>
-                    {activeOrders[0] && (
-                        <RiderLocationTracker
-                            orderId={activeOrders[0].id}
-                            initialStatus={activeOrders[0].status}
-                        />
-                    )}
-                    <div className="grid gap-4 lg:grid-cols-2">
-                        {activeOrders.map((order) => (
-                            <Card key={order.id}>
-                                <CardHeader>
-                                    <CardTitle>{order.order_number}</CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-4 text-sm">
-                                    <div>
-                                        <p className="font-medium">
-                                            {order.restaurant.name}
-                                        </p>
-                                        <p className="text-muted-foreground">
-                                            {
-                                                order.delivery_address
-                                                    .address_line
-                                            }
-                                        </p>
-                                        <p className="mt-1 uppercase">
-                                            {order.payment_method} ·{' '}
-                                            {currency.format(
-                                                Number(order.total_amount),
-                                            )}
-                                        </p>
-                                    </div>
-
-                                    {order.payment_method === 'cod' && (
-                                        <label className="flex items-center gap-2 rounded-md border p-3">
-                                            <input
-                                                type="checkbox"
-                                                checked={
-                                                    cashCollected[order.id] ??
-                                                    false
-                                                }
-                                                onChange={(event) =>
-                                                    setCashCollected(
-                                                        (current) => ({
-                                                            ...current,
-                                                            [order.id]:
-                                                                event.target
-                                                                    .checked,
-                                                        }),
-                                                    )
-                                                }
-                                            />
-                                            Cash collected from customer
-                                        </label>
-                                    )}
-
-                                    <Button
-                                        className="w-full"
-                                        onClick={() =>
-                                            router.patch(
-                                                `/rider/orders/${order.id}/complete`,
-                                                {
-                                                    outcome: 'delivered',
-                                                    cash_collected:
-                                                        cashCollected[
-                                                            order.id
-                                                        ] ?? false,
-                                                },
-                                            )
+                    {activeOrders[0] ? (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>
+                                    {activeOrders[0].order_number}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4 text-sm">
+                                <div>
+                                    <p className="font-medium">
+                                        {activeOrders[0].restaurant.name}
+                                    </p>
+                                    <p className="text-muted-foreground">
+                                        {
+                                            activeOrders[0].delivery_address
+                                                .address_line
                                         }
-                                    >
-                                        Mark delivered
-                                    </Button>
-
-                                    <div className="space-y-2 border-t pt-4">
-                                        <Input
-                                            placeholder="Why could payment/delivery not be completed?"
-                                            value={
-                                                failureReasons[order.id] ?? ''
-                                            }
-                                            onChange={(event) =>
-                                                setFailureReasons(
-                                                    (current) => ({
-                                                        ...current,
-                                                        [order.id]:
-                                                            event.target.value,
-                                                    }),
-                                                )
-                                            }
-                                        />
-                                        <Button
-                                            variant="destructive"
-                                            className="w-full"
-                                            disabled={
-                                                !(
-                                                    failureReasons[order.id] ??
-                                                    ''
-                                                ).trim()
-                                            }
-                                            onClick={() =>
-                                                router.patch(
-                                                    `/rider/orders/${order.id}/complete`,
-                                                    {
-                                                        outcome:
-                                                            'failed_delivery',
-                                                        cancellation_reason:
-                                                            failureReasons[
-                                                                order.id
-                                                            ],
-                                                    },
-                                                )
-                                            }
-                                        >
-                                            Report payment or delivery issue
-                                        </Button>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                    {activeOrders.length === 0 && (
+                                    </p>
+                                    <p className="mt-1 uppercase">
+                                        {activeOrders[0].payment_method} ·{' '}
+                                        {currency.format(
+                                            Number(
+                                                activeOrders[0].total_amount,
+                                            ),
+                                        )}
+                                    </p>
+                                </div>
+                                <Button asChild className="min-h-11 w-full">
+                                    <Link href="/rider/active">
+                                        Continue active delivery
+                                    </Link>
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    ) : (
                         <p className="text-muted-foreground text-sm">
                             You have no active delivery.
                         </p>

@@ -31,6 +31,8 @@ class SettingController extends Controller
         'customer_notify_after_minutes',
         'auto_cancel_after_minutes',
         'rider_waiting_compensation_threshold_minutes',
+        'rider_waiting_compensation_amount',
+        'rider_customer_unreachable_wait_minutes',
         'chat_close_after_minutes',
         'default_commission_rate',
         'delivery_base_fee',

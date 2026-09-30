@@ -11,6 +11,7 @@ use App\Models\PlatformSetting;
 use App\Models\RiderPoolOffer;
 use App\Services\ConversationService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class TransitionOrderStatus
 {
@@ -39,6 +40,10 @@ class TransitionOrderStatus
 
             if ($status === 'finding_rider' && $previousStatus !== 'finding_rider') {
                 $attributes['rider_search_started_at'] ??= now();
+            }
+
+            if ($status === 'rider_assigned' && empty($order->pickup_code)) {
+                $attributes['pickup_code'] ??= Str::upper(Str::random(4));
             }
 
             $order->forceFill([...$attributes, 'status' => $status]);

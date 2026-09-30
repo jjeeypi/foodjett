@@ -29,7 +29,14 @@ class RiderAvailabilityTest extends TestCase
                 ->where('riderContext.availability_status', 'offline')
                 ->where('riderContext.is_busy', false));
 
-        foreach (['active', 'earnings', 'account'] as $pageName) {
+        $this->actingAs($rider->user)
+            ->get(route('rider.active'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('rider/active')
+                ->where('order', null));
+
+        foreach (['earnings', 'account'] as $pageName) {
             $this->actingAs($rider->user)
                 ->get(route("rider.{$pageName}"))
                 ->assertOk()

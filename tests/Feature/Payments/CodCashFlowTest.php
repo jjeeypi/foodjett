@@ -7,11 +7,14 @@ use App\Models\Customer;
 use App\Models\CustomerAddress;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Models\PlatformSetting;
 use App\Models\Restaurant;
 use App\Models\Rider;
 use App\Models\RiderCashRemittance;
 use App\Models\RiderPoolOffer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -65,9 +68,10 @@ class CodCashFlowTest extends TestCase
 
     public function test_cod_delivery_marks_payment_paid_and_increments_cash_on_hand_once(): void
     {
+        Storage::fake('public');
         $rider = Rider::factory()->approved()->create(['cash_on_hand' => 100]);
         $order = $this->makeOrder([
-            'status' => 'on_the_way',
+            'status' => 'arrived',
             'payment_method' => 'cod',
             'rider_id' => $rider->id,
             'total_amount' => 250,
@@ -75,8 +79,9 @@ class CodCashFlowTest extends TestCase
         $payment = $this->createPayment($order, 'pending');
 
         $this->actingAs($rider->user)
-            ->patch(route('rider.orders.complete', $order), [
-                'outcome' => 'delivered',
+            ->post(route('rider.active.advance'), [
+                'next_status' => 'delivered',
+                'proof_of_delivery' => UploadedFile::fake()->create('proof.jpg', 100, 'image/jpeg'),
                 'cash_collected' => true,
             ])
             ->assertRedirect();
@@ -96,16 +101,19 @@ class CodCashFlowTest extends TestCase
     {
         $rider = Rider::factory()->approved()->create(['cash_on_hand' => 100]);
         $order = $this->makeOrder([
-            'status' => 'on_the_way',
+            'status' => 'arrived',
             'payment_method' => 'cod',
             'rider_id' => $rider->id,
         ]);
         $payment = $this->createPayment($order, 'pending');
+        PlatformSetting::query()
+            ->where('key', 'rider_customer_unreachable_wait_minutes')
+            ->update(['value' => '0']);
+        PlatformSetting::forgetCached('rider_customer_unreachable_wait_minutes');
 
         $this->actingAs($rider->user)
-            ->patch(route('rider.orders.complete', $order), [
-                'outcome' => 'failed_delivery',
-                'cancellation_reason' => 'Customer refused to pay.',
+            ->post(route('rider.active.failed'), [
+                'reason' => 'Customer refused to pay.',
             ])
             ->assertRedirect();
 

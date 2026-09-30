@@ -71,6 +71,7 @@ class RiderOrderPoolTest extends TestCase
 
         $this->assertSame($firstRider->id, $order->refresh()->rider_id);
         $this->assertSame('rider_assigned', $order->status);
+        $this->assertNotNull($order->pickup_code);
         Event::assertDispatched(
             OrderTakenFromPool::class,
             fn (OrderTakenFromPool $event): bool => $event->id === $order->id,

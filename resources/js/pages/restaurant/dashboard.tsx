@@ -34,6 +34,7 @@ type RecentOrder = {
     status: OrderStatus;
     total_amount: string;
     payment_method?: 'cod' | 'gcash' | 'card';
+    pickup_code?: string | null;
     placed_at: string;
     items_count: number | null;
     customer: { user: { name: string } } | null;
@@ -301,6 +302,12 @@ export default function RestaurantDashboard({
                                                     order.placed_at,
                                                 ).toLocaleString()}
                                             </p>
+                                            {order.pickup_code && (
+                                                <p className="mt-1 text-xs font-semibold tracking-wider text-emerald-700 uppercase dark:text-emerald-300">
+                                                    Pickup code:{' '}
+                                                    {order.pickup_code}
+                                                </p>
+                                            )}
                                         </div>
                                         <div className="flex items-center gap-3">
                                             <span className="font-medium tabular-nums">

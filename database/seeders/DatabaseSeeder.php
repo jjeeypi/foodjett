@@ -73,6 +73,8 @@ class DatabaseSeeder extends Seeder
             ['key' => 'auto_cancel_after_minutes',               'value' => '15',   'description' => 'Minutes before auto-cancelling order with no rider found'],
             ['key' => 'default_commission_rate',                 'value' => '15',   'description' => 'Default platform commission rate (%)'],
             ['key' => 'rider_waiting_compensation_threshold_minutes', 'value' => '5', 'description' => 'Minutes waiting at restaurant before waiting compensation kicks in'],
+            ['key' => 'rider_waiting_compensation_amount', 'value' => '10', 'description' => 'Fixed waiting pay once the restaurant waiting threshold is reached'],
+            ['key' => 'rider_customer_unreachable_wait_minutes', 'value' => '5', 'description' => 'Minutes to wait after arrival before reporting the customer unreachable'],
         ];
 
         foreach ($settings as $setting) {

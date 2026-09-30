@@ -28,7 +28,7 @@ class RiderPayCalculator
 
         $basePay = self::BASE_PAY;
         $distancePay = round($deliveryDistanceKm * self::DISTANCE_RATE_PER_KM, 2);
-        $incentiveAmount = round((float) $order->poolOffer->incentive_amount, 2);
+        $incentiveAmount = round((float) ($order->poolOffer?->incentive_amount ?? 0), 2);
 
         return [
             'base_pay' => $basePay,

@@ -65,6 +65,7 @@ class DashboardController extends Controller
                     'status',
                     'total_amount',
                     'payment_method',
+                    'pickup_code',
                     'placed_at',
                 ]),
         ]);

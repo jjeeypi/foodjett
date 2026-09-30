@@ -50,6 +50,7 @@ type Props = {
     conversation: ChatConversation;
     initialMessages: MessagePage;
     currentUserId: number;
+    contextLabel?: string;
     onMessage?: (message: ChatMessage) => void;
     onRead?: () => void;
 };
@@ -76,6 +77,7 @@ export default function ChatThread({
     conversation,
     initialMessages,
     currentUserId,
+    contextLabel,
     onMessage,
     onRead,
 }: Props) {
@@ -266,9 +268,10 @@ export default function ChatThread({
                     </p>
                     <p className="text-muted-foreground truncate text-xs">
                         Order {conversation.order.order_number} ·{' '}
-                        {conversation.type === 'customer_rider'
-                            ? 'Rider chat'
-                            : 'Restaurant chat'}
+                        {contextLabel ??
+                            (conversation.type === 'customer_rider'
+                                ? 'Rider chat'
+                                : 'Restaurant chat')}
                     </p>
                 </div>
                 <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
