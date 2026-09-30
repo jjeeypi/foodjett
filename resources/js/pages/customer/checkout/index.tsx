@@ -113,10 +113,12 @@ export default function Checkout({
     restaurant,
     addresses: initialAddresses,
     idempotencyToken,
+    paymongoConfigured,
 }: {
     restaurant: Restaurant;
     addresses: Address[];
     idempotencyToken: string;
+    paymongoConfigured: boolean;
 }) {
     const {
         items,
@@ -193,21 +195,16 @@ export default function Checkout({
     const quotePayload = useMemo(
         () => ({
             customer_address_id: addressId,
-            payment_method: paymentMethod,
+            // Totals are payment-method agnostic. Keeping this fixed prevents
+            // a quote request when the customer only changes a radio button.
+            payment_method: 'cod' as const,
             customer_notes: null,
             voucher_code: appliedVoucher,
             tip_amount: tipAmount,
             idempotency_token: idempotencyToken,
             items: checkoutItems,
         }),
-        [
-            addressId,
-            appliedVoucher,
-            checkoutItems,
-            idempotencyToken,
-            paymentMethod,
-            tipAmount,
-        ],
+        [addressId, appliedVoucher, checkoutItems, idempotencyToken, tipAmount],
     );
 
     useEffect(() => {
@@ -311,6 +308,12 @@ export default function Checkout({
     const submit = (event: FormEvent) => {
         event.preventDefault();
         if (!quote || submitting) return;
+        if (paymentMethod !== 'cod' && !paymongoConfigured) {
+            setSubmitErrors([
+                'GCash and card payments are temporarily unavailable. Please use Cash on Delivery.',
+            ]);
+            return;
+        }
 
         setSubmitErrors([]);
         router.post(
@@ -517,6 +520,9 @@ export default function Checkout({
                                         key={method.value}
                                         className={cn(
                                             'cursor-pointer rounded-xl border p-4 transition-colors',
+                                            method.value !== 'cod' &&
+                                                !paymongoConfigured &&
+                                                'cursor-not-allowed opacity-55',
                                             paymentMethod === method.value &&
                                                 'border-primary bg-primary/5 ring-primary/20 ring-2',
                                         )}
@@ -530,6 +536,10 @@ export default function Checkout({
                                                     paymentMethod ===
                                                     method.value
                                                 }
+                                                disabled={
+                                                    method.value !== 'cod' &&
+                                                    !paymongoConfigured
+                                                }
                                                 onChange={() =>
                                                     setPaymentMethod(
                                                         method.value,
@@ -541,7 +551,10 @@ export default function Checkout({
                                                     {method.label}
                                                 </span>
                                                 <span className="text-muted-foreground mt-1 block text-xs">
-                                                    {method.description}
+                                                    {method.value !== 'cod' &&
+                                                    !paymongoConfigured
+                                                        ? 'Temporarily unavailable. Cash on Delivery is still available.'
+                                                        : method.description}
                                                 </span>
                                             </span>
                                         </span>
@@ -745,7 +758,9 @@ export default function Checkout({
                                         quoteLoading ||
                                         submitting ||
                                         !cartMatchesRestaurant ||
-                                        addressId === null
+                                        addressId === null ||
+                                        (paymentMethod !== 'cod' &&
+                                            !paymongoConfigured)
                                     }
                                 >
                                     {submitting ? (

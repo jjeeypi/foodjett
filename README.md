@@ -197,17 +197,15 @@ Add PayMongo test or live credentials to `.env`:
 ```env
 PAYMONGO_SECRET_KEY=
 PAYMONGO_PUBLIC_KEY=
-PAYMONGO_WEBHOOK_SECRET=
 PAYMONGO_BASE_URL=https://api.paymongo.com
 ```
 
-The webhook endpoint is:
-
-```text
-POST /webhooks/paymongo
-```
-
-For local webhook testing, expose the application through a secure public tunnel and register its HTTPS webhook URL with PayMongo. The customer callback is not trusted by itself: FoodJett retrieves the checkout session from PayMongo before creating an order.
+Loading checkout and recalculating quotes never contacts PayMongo. For GCash and
+card, the application creates a hosted Checkout Session only when the customer
+submits checkout. After PayMongo redirects the customer back, FoodJett retrieves
+that specific session from PayMongo and creates the order only when its paid
+payment, amount, currency, and reference are verified. COD bypasses PayMongo and
+creates the order immediately with a pending payment.
 
 Default order fees can also be configured:
 

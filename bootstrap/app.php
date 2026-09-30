@@ -20,8 +20,6 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
-        $middleware->validateCsrfTokens(except: ['webhooks/paymongo']);
-
         $middleware->alias([
             'approved' => EnsureAccountIsApproved::class,
             'role' => EnsureUserHasRole::class,

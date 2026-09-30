@@ -14,6 +14,7 @@ use App\Models\Restaurant;
 use App\Models\Voucher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -26,6 +27,7 @@ class CheckoutExperienceTest extends TestCase
     {
         parent::setUp();
 
+        config()->set('inertia.ssr.enabled', false);
         config()->set('orders.service_fee', 10);
         PlatformSetting::query()->updateOrCreate(
             ['key' => 'delivery_base_fee'],
@@ -39,6 +41,8 @@ class CheckoutExperienceTest extends TestCase
 
     public function test_checkout_page_lists_addresses_and_issues_an_idempotency_token(): void
     {
+        config()->set('services.paymongo.secret_key', null);
+        Http::preventStrayRequests();
         [$customer, $address, $restaurant] = $this->fixtures();
 
         $this->actingAs($customer->user)
@@ -49,11 +53,31 @@ class CheckoutExperienceTest extends TestCase
                 ->where('restaurant.id', $restaurant->id)
                 ->where('addresses.0.id', $address->id)
                 ->where('addresses.0.is_default', true)
-                ->where('idempotencyToken', fn (string $token): bool => Str::isUuid($token)));
+                ->where('idempotencyToken', fn (string $token): bool => Str::isUuid($token))
+                ->where('paymongoConfigured', false));
+
+        Http::assertNothingSent();
+    }
+
+    public function test_checkout_page_uses_local_configuration_without_contacting_paymongo(): void
+    {
+        config()->set('services.paymongo.secret_key', 'sk_test_configured');
+        Http::preventStrayRequests();
+        [$customer, , $restaurant] = $this->fixtures();
+
+        $this->actingAs($customer->user)
+            ->get(route('customer.checkout.show', $restaurant))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('customer/checkout/index')
+                ->where('paymongoConfigured', true));
+
+        Http::assertNothingSent();
     }
 
     public function test_quote_uses_settings_tip_and_percentage_voucher(): void
     {
+        Http::preventStrayRequests();
         [$customer, $address, $restaurant, $menuItem] = $this->fixtures();
         $voucher = Voucher::factory()->create([
             'code' => 'SAVE10',
@@ -82,6 +106,8 @@ class CheckoutExperienceTest extends TestCase
             ->assertJsonPath('quote.tip_amount', 20)
             ->assertJsonPath('quote.total_amount', 245)
             ->assertJsonPath('quote.voucher.id', $voucher->id);
+
+        Http::assertNothingSent();
     }
 
     public function test_cod_checkout_is_idempotent_and_records_voucher_once(): void

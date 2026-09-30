@@ -23,7 +23,6 @@ use App\Http\Controllers\Customer\RestaurantController as CustomerRestaurantCont
 use App\Http\Controllers\Customer\SearchController as CustomerSearchController;
 use App\Http\Controllers\Customer\SupportController as CustomerSupportController;
 use App\Http\Controllers\DashboardRedirectController;
-use App\Http\Controllers\PayMongoWebhookController;
 use App\Http\Controllers\PendingApprovalController;
 use App\Http\Controllers\Restaurant\DashboardController as RestaurantDashboardController;
 use App\Http\Controllers\Restaurant\MenuCategoryController as RestaurantMenuCategoryController;
@@ -37,10 +36,6 @@ use App\Http\Controllers\RiderRemittanceController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
-Route::post('webhooks/paymongo', PayMongoWebhookController::class)
-    ->middleware('throttle:60,1')
-    ->name('webhooks.paymongo');
-
 Route::middleware('guest')->group(function () {
     Route::get('register/restaurant', [RegisteredRestaurantController::class, 'create'])
         ->name('register.restaurant');

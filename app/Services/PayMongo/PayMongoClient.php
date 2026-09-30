@@ -10,6 +10,13 @@ use RuntimeException;
 
 class PayMongoClient
 {
+    public function isConfigured(): bool
+    {
+        $secretKey = config('services.paymongo.secret_key');
+
+        return is_string($secretKey) && trim($secretKey) !== '';
+    }
+
     /** @return array{id: string, checkout_url: string} */
     public function createCheckoutSession(
         PendingCheckout $checkout,
@@ -75,12 +82,12 @@ class PayMongoClient
     {
         $secretKey = config('services.paymongo.secret_key');
 
-        if (! is_string($secretKey) || $secretKey === '') {
+        if (! $this->isConfigured()) {
             throw new RuntimeException('PAYMONGO_SECRET_KEY is not configured.');
         }
 
         return Http::baseUrl((string) config('services.paymongo.base_url'))
-            ->withBasicAuth($secretKey, '')
+            ->withBasicAuth((string) $secretKey, '')
             ->acceptJson()
             ->asJson()
             ->timeout(15)

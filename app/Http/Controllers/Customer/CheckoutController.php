@@ -29,7 +29,7 @@ use Throwable;
 
 class CheckoutController extends Controller
 {
-    public function show(Restaurant $restaurant): Response
+    public function show(Restaurant $restaurant, PayMongoClient $payMongo): Response
     {
         abort_unless($restaurant->approval_status === 'approved', 404);
 
@@ -53,6 +53,7 @@ class CheckoutController extends Controller
                 ->map(fn (CustomerAddress $address): array => $this->addressData($address))
                 ->values(),
             'idempotencyToken' => (string) Str::uuid(),
+            'paymongoConfigured' => $payMongo->isConfigured(),
         ]);
     }
 
@@ -115,6 +116,12 @@ class CheckoutController extends Controller
 
             return to_route('customer.orders.show', $order)
                 ->with('checkoutCompleted', true);
+        }
+
+        if (! $payMongo->isConfigured()) {
+            throw ValidationException::withMessages([
+                'payment_method' => 'GCash and card payments are temporarily unavailable. Please use Cash on Delivery.',
+            ]);
         }
 
         try {

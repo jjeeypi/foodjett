@@ -29,7 +29,6 @@ class CheckoutPaymentTest extends TestCase
         parent::setUp();
 
         config()->set('services.paymongo.secret_key', 'sk_test_example');
-        config()->set('services.paymongo.webhook_secret', 'whsec_test_example');
         config()->set('services.paymongo.base_url', 'https://api.paymongo.com');
         config()->set('orders.delivery_fee', 50);
         config()->set('orders.service_fee', 10);
@@ -45,6 +44,7 @@ class CheckoutPaymentTest extends TestCase
 
     public function test_cod_checkout_creates_order_and_pending_payment_immediately(): void
     {
+        Http::preventStrayRequests();
         Event::fake([OrderPlaced::class]);
         [$customer, $address, $restaurant, $menuItem] = $this->checkoutFixtures();
 
@@ -71,6 +71,25 @@ class CheckoutPaymentTest extends TestCase
             && $event->restaurant_id === $restaurant->id
             && $event->customer_name === $customer->user->name
             && $event->total_amount === '260.00');
+        Http::assertNothingSent();
+    }
+
+    public function test_online_checkout_is_rejected_locally_when_paymongo_is_not_configured(): void
+    {
+        config()->set('services.paymongo.secret_key', null);
+        Http::preventStrayRequests();
+        [$customer, $address, $restaurant, $menuItem] = $this->checkoutFixtures();
+
+        $this->actingAs($customer->user)
+            ->post(
+                route('customer.checkout.store', $restaurant),
+                $this->checkoutPayload($address, $menuItem, 'gcash'),
+            )
+            ->assertSessionHasErrors('payment_method');
+
+        $this->assertDatabaseCount('pending_checkouts', 0);
+        $this->assertDatabaseCount('orders', 0);
+        Http::assertNothingSent();
     }
 
     public function test_online_checkout_creates_no_order_until_paymongo_verifies_a_paid_payment(): void
@@ -193,66 +212,6 @@ class CheckoutPaymentTest extends TestCase
         $this->assertDatabaseCount('payments', 0);
         $this->assertSame('cancelled', $pendingCheckout->refresh()->status);
         Event::assertNotDispatched(OrderPlaced::class);
-    }
-
-    public function test_signed_paymongo_webhook_fulfills_checkout_idempotently(): void
-    {
-        Event::fake([OrderPlaced::class]);
-        [$customer, $address, $restaurant, $menuItem] = $this->checkoutFixtures();
-
-        Http::fake([
-            'https://api.paymongo.com/v2/checkout_sessions' => Http::response([
-                'data' => [
-                    'id' => 'cs_webhook_checkout',
-                    'attributes' => ['checkout_url' => 'https://checkout.paymongo.com/cs_webhook_checkout'],
-                ],
-            ]),
-        ]);
-
-        $this->actingAs($customer->user)->post(
-            route('customer.checkout.store', $restaurant),
-            $this->checkoutPayload($address, $menuItem, 'gcash'),
-            ['X-Inertia' => 'true'],
-        );
-
-        $pendingCheckout = PendingCheckout::query()->sole();
-        $payload = json_encode([
-            'data' => [
-                'type' => 'checkout_session.payment.paid',
-                'data' => [
-                    'id' => 'cs_webhook_checkout',
-                    'attributes' => [
-                        'reference_number' => $pendingCheckout->paymongo_reference,
-                        'payments' => [[
-                            'id' => 'pay_webhook_123',
-                            'attributes' => [
-                                'status' => 'paid',
-                                'amount' => 26000,
-                                'currency' => 'PHP',
-                            ],
-                        ]],
-                    ],
-                ],
-            ],
-        ], JSON_THROW_ON_ERROR);
-        $timestamp = (string) time();
-        $signature = hash_hmac('sha256', $timestamp.'.'.$payload, 'whsec_test_example');
-        $headers = [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_PAYMONGO_SIGNATURE' => "t={$timestamp},te={$signature},li=",
-        ];
-
-        $this->call('POST', route('webhooks.paymongo'), [], [], [], $headers, $payload)
-            ->assertOk();
-        $this->call('POST', route('webhooks.paymongo'), [], [], [], $headers, $payload)
-            ->assertOk();
-
-        $this->assertDatabaseCount('orders', 1);
-        $this->assertDatabaseHas('payments', [
-            'status' => 'paid',
-            'transaction_reference' => 'pay_webhook_123',
-        ]);
-        Event::assertDispatchedTimes(OrderPlaced::class, 1);
     }
 
     /** @return array{Customer, CustomerAddress, Restaurant, MenuItem} */
