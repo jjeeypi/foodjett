@@ -1,6 +1,6 @@
 # FoodJett
 
-FoodJett is a multi-role food ordering and delivery platform built with Laravel, Inertia, React, and TypeScript. It supports customers, restaurants, riders, and administrators, including role-scoped dashboards, restaurant/rider approval, hosted PayMongo checkout, cash-on-delivery collection, and rider cash remittance.
+FoodJett is a multi-role food ordering and delivery platform built with Laravel, Inertia, React, and TypeScript. It supports customers, restaurants, riders, and administrators, including role-scoped dashboards, restaurant/rider approval, simulated online payments, cash-on-delivery collection, and rider cash remittance.
 
 ## Technology
 
@@ -11,7 +11,7 @@ FoodJett is a multi-role food ordering and delivery platform built with Laravel,
 | Styling        | Tailwind CSS 4, Radix UI, Lucide icons                        |
 | Authentication | Laravel Fortify, email verification, 2FA, passkeys            |
 | Database       | MariaDB/MySQL for the application; SQLite in-memory for tests |
-| Payments       | PayMongo hosted checkout for GCash/card; internal COD flow    |
+| Payments       | Simulated GCash/card payments; internal COD cash flow         |
 | Real-time      | Laravel Reverb, Echo, and the Pusher WebSocket protocol       |
 | Quality        | PHPUnit, PHPStan/Larastan, Pint, Vite Plus checks             |
 
@@ -30,8 +30,8 @@ FoodJett is a multi-role food ordering and delivery platform built with Laravel,
 ### Ordering and payments
 
 - Customers select COD, GCash, or card during checkout.
-- GCash/card checkouts use PayMongo's hosted checkout page.
-- Online-payment orders are created only after server-side verification confirms payment.
+- GCash/card payments are simulated and recorded as paid immediately when the order is placed.
+- Simulated GCash/card payments receive a generated `SIMULATED-*` transaction reference and never call an external gateway.
 - COD orders are created immediately with a pending payment.
 - Rider delivery confirmation records cash collection and increases `cash_on_hand`.
 - Failed COD delivery leaves the payment pending for administrator follow-up.
@@ -190,22 +190,13 @@ php artisan make:admin "Admin Name" admin@example.com "a-strong-password"
 
 The command creates both the `users` record and its one-to-one `admins` profile.
 
-## PayMongo configuration
+## Payment behavior
 
-Add PayMongo test or live credentials to `.env`:
-
-```env
-PAYMONGO_SECRET_KEY=
-PAYMONGO_PUBLIC_KEY=
-PAYMONGO_BASE_URL=https://api.paymongo.com
-```
-
-Loading checkout and recalculating quotes never contacts PayMongo. For GCash and
-card, the application creates a hosted Checkout Session only when the customer
-submits checkout. After PayMongo redirects the customer back, FoodJett retrieves
-that specific session from PayMongo and creates the order only when its paid
-payment, amount, currency, and reference are verified. COD bypasses PayMongo and
-creates the order immediately with a pending payment.
+Checkout does not require payment-gateway credentials. GCash and card are
+school-project simulations: placing the order creates it immediately with a paid
+payment and generated placeholder transaction reference. COD creates the order
+immediately with a pending payment; the rider marks it paid only after confirming
+cash collection at delivery.
 
 Default order fees can also be configured:
 
@@ -304,7 +295,6 @@ app/
 ├── Http/Middleware/            Role, approval, and active-account checks
 ├── Models/                     Marketplace domain models
 ├── Policies/                   Role and ownership authorization
-└── Services/PayMongo/          PayMongo client and verification
 
 resources/js/
 ├── components/admin/           Reusable admin data table and pagination
@@ -319,7 +309,7 @@ tests/Feature/
 ├── Admin/                      Admin dashboard, approvals, and order workflows
 ├── Auth/                       Authentication and registration
 ├── Authorization/              Ownership policies
-└── Payments/                   PayMongo and COD cash-flow tests
+└── Payments/                   Simulated online-payment and COD cash-flow tests
 ```
 
 ## Current business rules and known gaps
@@ -331,9 +321,9 @@ tests/Feature/
 - Restaurant approval and individual document verification are separate states.
 - Restaurant and rider registration do not yet upload approval documents. Document upload should be added to registration or a dedicated onboarding/profile-completion step using the public storage disk.
 - Nearby-rider ordering uses straight-line Haversine distance from the restaurant, not road distance or ETA.
-- Administrator refunds currently update FoodJett's payment ledger and status history only; PayMongo API refunds still need a gateway-specific integration and reconciliation flow.
+- Administrator refunds update FoodJett's simulated payment ledger and status history only; no external funds are transferred.
 - Administrator cancellation does not automatically refund a paid order or notify participants; those workflows should be added once notification and refund policy are defined.
-- Customer cancellation after the rider search reaches `customer_notified` records a full refund in FoodJett's payment ledger. PayMongo API refund execution and reconciliation are still required before this represents a completed external refund.
+- Customer cancellation after the rider search reaches `customer_notified` records a full refund in FoodJett's simulated payment ledger; no external funds are transferred.
 - Transaction date filters use `payments.paid_at`; pending payments without a paid timestamp are omitted when a date range is active.
 - Restaurant payout gross sales are the sum of delivered-order food subtotals. Delivery fees, service fees, and tips are excluded; stored `commission_amount` values are deducted to calculate net payouts.
 - Rider payout periods use each earning's related order `delivered_at` timestamp. Payout cadence is administrator-selected rather than fixed to weekly or biweekly.

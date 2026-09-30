@@ -53,21 +53,17 @@ class CreateOrderFromCart
                         ->lockForUpdate()
                         ->firstOrFail();
 
-                    // Paid gateway checkouts honor the validated checkout snapshot so a
-                    // voucher expiring while the customer is at PayMongo never strands a paid order.
-                    if ($paymentStatus !== 'paid') {
-                        $verified = $this->vouchers->resolve(
-                            $checkout->voucherCode,
-                            Customer::query()->findOrFail($checkout->customerId),
-                            Restaurant::query()->findOrFail($checkout->restaurantId),
-                            $checkout->subtotal,
-                            $checkout->deliveryFee,
-                        );
+                    $verified = $this->vouchers->resolve(
+                        $checkout->voucherCode,
+                        Customer::query()->findOrFail($checkout->customerId),
+                        Restaurant::query()->findOrFail($checkout->restaurantId),
+                        $checkout->subtotal,
+                        $checkout->deliveryFee,
+                    );
 
-                        if ($verified['voucher']?->id !== $voucher->id
-                            || abs($verified['discount'] - $checkout->discountAmount) >= 0.01) {
-                            throw new RuntimeException('Voucher pricing changed before order creation.');
-                        }
+                    if ($verified['voucher']?->id !== $voucher->id
+                        || abs($verified['discount'] - $checkout->discountAmount) >= 0.01) {
+                        throw new RuntimeException('Voucher pricing changed before order creation.');
                     }
                 }
 
@@ -122,7 +118,7 @@ class CreateOrderFromCart
                     $payment,
                     $paymentStatus === 'paid' ? 'system' : 'customer',
                     $paymentStatus === 'paid'
-                        ? 'Payment verified by PayMongo before order creation.'
+                        ? sprintf('Simulated %s payment recorded at checkout.', strtoupper($checkout->paymentMethod))
                         : 'Cash on delivery payment created with the order.',
                 );
 

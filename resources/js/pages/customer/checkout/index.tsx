@@ -80,12 +80,12 @@ const paymentMethods: Array<{
     {
         value: 'gcash',
         label: 'GCash',
-        description: 'Pay securely on PayMongo’s hosted GCash checkout.',
+        description: 'Simulated instant GCash payment for this demo.',
     },
     {
         value: 'card',
         label: 'Credit or Debit Card',
-        description: 'Pay securely by card on PayMongo’s hosted checkout.',
+        description: 'Simulated instant card payment for this demo.',
     },
 ];
 
@@ -113,12 +113,10 @@ export default function Checkout({
     restaurant,
     addresses: initialAddresses,
     idempotencyToken,
-    paymongoConfigured,
 }: {
     restaurant: Restaurant;
     addresses: Address[];
     idempotencyToken: string;
-    paymongoConfigured: boolean;
 }) {
     const {
         items,
@@ -308,12 +306,6 @@ export default function Checkout({
     const submit = (event: FormEvent) => {
         event.preventDefault();
         if (!quote || submitting) return;
-        if (paymentMethod !== 'cod' && !paymongoConfigured) {
-            setSubmitErrors([
-                'GCash and card payments are temporarily unavailable. Please use Cash on Delivery.',
-            ]);
-            return;
-        }
 
         setSubmitErrors([]);
         router.post(
@@ -510,8 +502,8 @@ export default function Checkout({
                             <CardHeader>
                                 <CardTitle>Payment method</CardTitle>
                                 <CardDescription>
-                                    Online orders are created only after
-                                    PayMongo verifies payment.
+                                    GCash and card payments are simulated and
+                                    recorded as paid immediately for this demo.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="grid gap-3 sm:grid-cols-3">
@@ -520,9 +512,6 @@ export default function Checkout({
                                         key={method.value}
                                         className={cn(
                                             'cursor-pointer rounded-xl border p-4 transition-colors',
-                                            method.value !== 'cod' &&
-                                                !paymongoConfigured &&
-                                                'cursor-not-allowed opacity-55',
                                             paymentMethod === method.value &&
                                                 'border-primary bg-primary/5 ring-primary/20 ring-2',
                                         )}
@@ -536,10 +525,6 @@ export default function Checkout({
                                                     paymentMethod ===
                                                     method.value
                                                 }
-                                                disabled={
-                                                    method.value !== 'cod' &&
-                                                    !paymongoConfigured
-                                                }
                                                 onChange={() =>
                                                     setPaymentMethod(
                                                         method.value,
@@ -551,10 +536,7 @@ export default function Checkout({
                                                     {method.label}
                                                 </span>
                                                 <span className="text-muted-foreground mt-1 block text-xs">
-                                                    {method.value !== 'cod' &&
-                                                    !paymongoConfigured
-                                                        ? 'Temporarily unavailable. Cash on Delivery is still available.'
-                                                        : method.description}
+                                                    {method.description}
                                                 </span>
                                             </span>
                                         </span>
@@ -758,9 +740,7 @@ export default function Checkout({
                                         quoteLoading ||
                                         submitting ||
                                         !cartMatchesRestaurant ||
-                                        addressId === null ||
-                                        (paymentMethod !== 'cod' &&
-                                            !paymongoConfigured)
+                                        addressId === null
                                     }
                                 >
                                     {submitting ? (
@@ -768,12 +748,10 @@ export default function Checkout({
                                             <LoaderCircle className="animate-spin" />
                                             Processing…
                                         </>
-                                    ) : paymentMethod === 'cod' ? (
+                                    ) : (
                                         <>
                                             <ReceiptText /> Place order
                                         </>
-                                    ) : (
-                                        'Continue to PayMongo'
                                     )}
                                 </Button>
                                 <p className="text-muted-foreground text-center text-xs">

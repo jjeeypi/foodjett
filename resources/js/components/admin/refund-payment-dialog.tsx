@@ -73,8 +73,8 @@ export default function RefundPaymentDialog({
                     <DialogTitle>Refund {orderNumber}</DialogTitle>
                     <DialogDescription>
                         Up to {currency.format(remaining)} remains refundable.
-                        This updates FoodJett's ledger only and does not submit
-                        a refund to PayMongo.
+                        This updates FoodJett's simulated payment ledger; no
+                        external transfer is made.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">

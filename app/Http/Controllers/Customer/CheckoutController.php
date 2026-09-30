@@ -10,26 +10,18 @@ use App\Http\Requests\Customer\SaveAddressRequest;
 use App\Http\Requests\StoreCheckoutRequest;
 use App\Models\CustomerAddress;
 use App\Models\Order;
-use App\Models\PendingCheckout;
 use App\Models\Restaurant;
 use App\Services\CustomerAddressService;
-use App\Services\PayMongo\PayMongoClient;
-use Illuminate\Database\QueryException;
-use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
-use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
-use Throwable;
 
 class CheckoutController extends Controller
 {
-    public function show(Restaurant $restaurant, PayMongoClient $payMongo): Response
+    public function show(Restaurant $restaurant): Response
     {
         abort_unless($restaurant->approval_status === 'approved', 404);
 
@@ -53,7 +45,6 @@ class CheckoutController extends Controller
                 ->map(fn (CustomerAddress $address): array => $this->addressData($address))
                 ->values(),
             'idempotencyToken' => (string) Str::uuid(),
-            'paymongoConfigured' => $payMongo->isConfigured(),
         ]);
     }
 
@@ -86,8 +77,7 @@ class CheckoutController extends Controller
         Restaurant $restaurant,
         BuildCheckoutData $buildCheckout,
         CreateOrderFromCart $createOrder,
-        PayMongoClient $payMongo,
-    ): RedirectResponse|SymfonyResponse {
+    ): RedirectResponse {
         $token = $request->idempotencyToken();
         $existingOrder = Order::query()->where('checkout_token', $token)->first();
 
@@ -98,91 +88,31 @@ class CheckoutController extends Controller
                 409,
             );
 
-            return to_route('customer.orders.show', $existingOrder)
-                ->with('checkoutCompleted', true);
-        }
-
-        $existing = PendingCheckout::query()
-            ->where('idempotency_token', $token)
-            ->first();
-        if ($existing !== null) {
-            return $this->existingPendingResponse($existing, $request, $restaurant);
+            return $this->completedResponse($existingOrder);
         }
 
         $checkout = $this->checkoutData($request, $restaurant, $buildCheckout);
-
-        if ($checkout->paymentMethod === 'cod') {
-            $order = $createOrder->handle($checkout, 'pending', checkoutToken: $token);
-
-            return to_route('customer.orders.show', $order)
-                ->with('checkoutCompleted', true);
-        }
-
-        if (! $payMongo->isConfigured()) {
-            throw ValidationException::withMessages([
-                'payment_method' => 'GCash and card payments are temporarily unavailable. Please use Cash on Delivery.',
-            ]);
-        }
-
-        try {
-            $pendingCheckout = PendingCheckout::query()->create([
-                'idempotency_token' => $token,
-                'customer_id' => $checkout->customerId,
-                'restaurant_id' => $checkout->restaurantId,
-                'customer_address_id' => $checkout->customerAddressId,
-                'payment_method' => $checkout->paymentMethod,
-                'payload' => $checkout->toArray(),
-                'total_amount' => $checkout->totalAmount,
-                'paymongo_reference' => 'FJ-'.Str::upper((string) Str::ulid()),
-                'expires_at' => now()->addHour(),
-            ]);
-        } catch (QueryException $exception) {
-            $pendingCheckout = PendingCheckout::query()
-                ->where('idempotency_token', $token)
-                ->first();
-
-            if ($pendingCheckout === null) {
-                throw $exception;
-            }
-
-            return $this->existingPendingResponse($pendingCheckout, $request, $restaurant);
-        }
-
-        $successUrl = URL::temporarySignedRoute(
-            'customer.checkout.callback',
-            now()->addHour(),
-            ['pendingCheckout' => $pendingCheckout, 'outcome' => 'success'],
-        );
-        $cancelUrl = URL::temporarySignedRoute(
-            'customer.checkout.callback',
-            now()->addHour(),
-            ['pendingCheckout' => $pendingCheckout, 'outcome' => 'cancel'],
+        $isCashOnDelivery = $checkout->paymentMethod === 'cod';
+        $order = $createOrder->handle(
+            $checkout,
+            $isCashOnDelivery ? 'pending' : 'paid',
+            $isCashOnDelivery ? null : 'SIMULATED-'.Str::upper(Str::random(16)),
+            $token,
         );
 
-        try {
-            $session = $payMongo->createCheckoutSession(
-                $pendingCheckout,
-                $request->user(),
-                $successUrl,
-                $cancelUrl,
-            );
-        } catch (Throwable $exception) {
-            report($exception);
-            $pendingCheckout->update(['status' => 'failed']);
+        return $this->completedResponse($order);
+    }
 
-            $message = $exception instanceof RequestException
-                ? 'PayMongo rejected the checkout request. Please try another payment method.'
-                : 'The payment gateway is unavailable. Please try again shortly.';
+    public function success(Order $order): Response
+    {
+        Gate::authorize('view', $order);
+        abort_unless(in_array($order->payment_method, ['gcash', 'card'], true), 404);
 
-            throw ValidationException::withMessages(['payment_method' => $message]);
-        }
-
-        $pendingCheckout->update([
-            'paymongo_session_id' => $session['id'],
-            'paymongo_checkout_url' => $session['checkout_url'],
+        return Inertia::render('customer/checkout/success', [
+            'orderNumber' => $order->order_number,
+            'orderId' => $order->id,
+            'totalAmount' => (float) $order->total_amount,
         ]);
-
-        return Inertia::location($session['checkout_url']);
     }
 
     public function storeAddress(
@@ -222,29 +152,13 @@ class CheckoutController extends Controller
         );
     }
 
-    private function existingPendingResponse(
-        PendingCheckout $checkout,
-        StoreCheckoutRequest $request,
-        Restaurant $restaurant,
-    ): RedirectResponse|SymfonyResponse {
-        abort_unless(
-            $checkout->customer_id === $request->user()->customer?->id
-                && $checkout->restaurant_id === $restaurant->id,
-            409,
-        );
+    private function completedResponse(Order $order): RedirectResponse
+    {
+        $route = $order->payment_method === 'cod'
+            ? 'customer.orders.show'
+            : 'customer.checkout.success';
 
-        if ($checkout->order_id !== null) {
-            return to_route('customer.orders.show', $checkout->order_id)
-                ->with('checkoutCompleted', true);
-        }
-
-        if ($checkout->status === 'pending' && $checkout->paymongo_checkout_url !== null) {
-            return Inertia::location($checkout->paymongo_checkout_url);
-        }
-
-        throw ValidationException::withMessages([
-            'idempotency_token' => 'This checkout attempt has already ended. Reload checkout to try again.',
-        ]);
+        return to_route($route, $order)->with('checkoutCompleted', true);
     }
 
     /** @return array<string, mixed> */

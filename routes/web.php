@@ -10,7 +10,6 @@ use App\Http\Controllers\Admin\SupportController as AdminSupportController;
 use App\Http\Controllers\AdminRemittanceController;
 use App\Http\Controllers\Auth\RegisteredRestaurantController;
 use App\Http\Controllers\Auth\RegisteredRiderController;
-use App\Http\Controllers\CheckoutCallbackController;
 use App\Http\Controllers\ConversationMessageController;
 use App\Http\Controllers\Customer\AddressController as CustomerAddressController;
 use App\Http\Controllers\Customer\CheckoutController as CustomerCheckoutController;
@@ -295,9 +294,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->name('account.support.store');
         Route::get('account/support/{ticket}', [CustomerSupportController::class, 'show'])
             ->name('account.support.show');
-        Route::get('checkout/paymongo/{pendingCheckout}/callback', CheckoutCallbackController::class)
-            ->middleware('signed')
-            ->name('checkout.callback');
+        Route::get('checkout/success/{order}', [CustomerCheckoutController::class, 'success'])
+            ->name('checkout.success');
         Route::get('restaurants/{restaurant}', [CustomerRestaurantController::class, 'show'])
             ->name('restaurants.show');
         Route::post('checkout/addresses', [CustomerCheckoutController::class, 'storeAddress'])

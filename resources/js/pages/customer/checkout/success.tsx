@@ -12,12 +12,10 @@ export default function CheckoutSuccess({
     orderNumber,
     orderId,
     totalAmount,
-    cod = false,
 }: {
     orderNumber: string | null;
     orderId: number | null;
     totalAmount: number;
-    cod?: boolean;
 }) {
     return (
         <>
@@ -27,16 +25,13 @@ export default function CheckoutSuccess({
                     <CardHeader className="items-center">
                         <CheckCircle2 className="size-12 text-emerald-600" />
                         <CardTitle className="text-xl">
-                            {cod
-                                ? 'Order placed successfully!'
-                                : 'Payment Successful — thank you for your order!'}
+                            Payment Successful — thank you for your order!
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <p className="text-muted-foreground text-sm">
-                            {cod
-                                ? 'Pay the rider in cash when your food arrives.'
-                                : 'Your payment was verified and your order has been sent to the restaurant.'}
+                            Your simulated payment was recorded and your order
+                            has been sent to the restaurant.
                         </p>
                         {orderNumber && (
                             <div className="rounded-lg border p-4">

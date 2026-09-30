@@ -199,7 +199,7 @@ export default function OrderShow({ order }: { order: Order }) {
                                     action={`/admin/orders/${order.id}/refund`}
                                     field="reason"
                                     title="Record full refund"
-                                    description="This records a full refund in FoodJett. It does not send a refund request to PayMongo."
+                                    description="This records a full refund in FoodJett's simulated payment ledger. No external transfer is made."
                                     fieldLabel="Refund reason"
                                     placeholder="Explain why the payment is being refunded…"
                                     triggerLabel="Process refund"
